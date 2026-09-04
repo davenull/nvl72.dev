@@ -18,9 +18,10 @@ const unverified = sources.filter((s) => !s.verified);
   <div class="prose">
     <p class="lede">
       Three rules govern every number on this site: measured figures and announced figures are
-      never mixed; where sources disagree the range is shown rather than a pick; and citations that
-      have not been confirmed against the publisher are marked as such rather than quietly padding
-      the list.
+      never mixed; where sources disagree the range is shown rather than a pick; and any citation
+      whose document has not actually been read is marked as such rather than quietly padding the
+      list. Where verifying a citation showed the underlying claim to be wrong, the claim was
+      changed and the change is recorded below.
     </p>
 
     <h2 id="disputed">Figures the sources disagree about</h2>
@@ -60,24 +61,36 @@ const unverified = sources.filter((s) => !s.verified);
 
     <h2 id="gaps">Known gaps</h2>
 
-    <Callout kind="caveat" tag="Open item">
+    <Callout kind="key" tag="Closed">
       <p>
-        <strong>Rack power smoothing under synchronised training loads.</strong> Large training
-        runs make a rack's draw behave like a square wave as thousands of GPUs enter and leave
-        collectives together, and the mitigations involve capacitance or energy storage at rack or
-        facility level. This is the thinnest-sourced topic in the research behind this site, and
-        <a href="/power-cooling">Chapter 6</a> deliberately says little about it. Writing it up
-        properly requires a dedicated NVIDIA or OCP power paper rather than inference from
-        secondary commentary.
+        <strong>Rack power smoothing under synchronised training loads.</strong> Originally the
+        thinnest-sourced topic here, and left almost blank for that reason. NVIDIA's multi-node
+        tuning guide names Power Smoothing directly, and the GB300 power blog gives the mechanism
+        and a measured figure, so <a href="/power-cooling#load-swings">Chapter 6</a> now covers it.
       </p>
     </Callout>
 
-    <Callout kind="caveat" tag="Open item">
+    {unverified.length > 0 && (
+      <Callout kind="caveat" tag="Open item">
+        <p>
+          <strong>
+            {unverified.length === 1 ? 'One citation has' : `${unverified.length} citations have`}
+            {' '}not been read directly.
+          </strong>
+          {' '}Marked "unconfirmed" in the list below, with a note explaining why. The claims come
+          from the research behind this site; the document itself has not been read here, so treat
+          those specific figures as second-hand.
+        </p>
+      </Callout>
+    )}
+
+    <Callout kind="caveat" tag="Corrected">
       <p>
-        <strong>{unverified.length} citations still need their deep link confirmed.</strong> They
-        are marked "unconfirmed" in the list below. The claims they support come from the research
-        behind this site, but the exact document has not been re-checked against the publisher —
-        which should happen before this site is treated as a reference rather than an explainer.
+        <strong>The "$5–10M per MW" liquid-cooling retrofit figure has been removed.</strong> It is
+        widely repeated and usually attributed to Schneider Electric, but it does not appear in the
+        Schneider article this site cites, and no primary source for it could be found. It has been
+        replaced with STL Partners' figures — around $2M per MW to retrofit against upwards of $11M
+        per MW for a new greenfield liquid-cooled build.
       </p>
     </Callout>
 

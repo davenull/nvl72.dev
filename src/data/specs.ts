@@ -27,20 +27,22 @@ const list: Spec[] = [
   { id: 'gpus', label: 'Blackwell GPUs per rack', value: '72', sources: ['nv-gb200'] },
   { id: 'cpus', label: 'Grace CPUs per rack', value: '36', sources: ['nv-gb200'] },
   { id: 'superchips', label: 'GB200 Superchips per rack', value: '36', sources: ['nv-gb200'] },
-  { id: 'compute-trays', label: 'Compute trays', value: '18', unit: '× 1U', sources: ['sth-teardown', 'supermicro'] },
+  { id: 'compute-trays', label: 'Compute trays', value: '18', unit: '× 1U', note: 'Split 8 and 10 around the switch band rather than evenly — Supermicro’s rack diagram lists ten above the NVLink switches and eight below.', sources: ['supermicro', 'sth-teardown'] },
   { id: 'switch-trays', label: 'NVSwitch trays', value: '9', sources: ['sth-teardown'] },
   { id: 'switch-asics', label: 'NVSwitch5 ASICs', value: '18', note: '2 per switch tray.', sources: ['nv-nvlink'] },
-  { id: 'rack-weight', label: 'Rack weight', value: '~1.36', unit: 't', note: 'About 3,000 lb — a floor-loading problem for most existing halls.', sources: ['sth-teardown'] },
-  { id: 'rack-height', label: 'Rack height', value: '~2.2', unit: 'm', note: 'Roughly a 42U-class footprint; ORv3-inspired / NVIDIA MGX reference rack.', sources: ['nv-ocp'] },
-  { id: 'rack-width', label: 'Rack width', value: '~0.6', unit: 'm', sources: ['nv-ocp'] },
-  { id: 'rack-depth', label: 'Rack depth', value: '~1.2', unit: 'm', sources: ['nv-ocp'] },
+  { id: 'rack-weight', label: 'Rack weight', value: '~1.36', unit: 't', note: 'About 3,000 lb — a floor-loading problem for most existing halls. NVIDIA’s OCP contribution describes over 100 lb of added reinforcement steel in the frame alone.', sources: ['sth-teardown', 'nv-ocp'] },
+  { id: 'rack-height', label: 'Rack height', value: '2,236', unit: 'mm', note: 'Roughly a 42U-class footprint; ORv3-inspired / NVIDIA MGX reference rack.', sources: ['supermicro'] },
+  { id: 'rack-width', label: 'Rack width', value: '600', unit: 'mm', sources: ['supermicro'] },
+  { id: 'rack-depth', label: 'Rack depth', value: '1,068', unit: 'mm', sources: ['supermicro'] },
+  { id: 'power-shelves', label: 'Power shelves', value: '8', unit: '× 1U', note: 'Arranged 4 + 4, each 33 kW from six 5.5 kW supplies — 132 kW of installed shelf capacity feeding the busbar.', sources: ['supermicro'] },
+  { id: 'busbar-current', label: 'Busbar current capacity', value: '1,400', unit: 'A', sources: ['nv-ocp'] },
 
   // ── Memory ─────────────────────────────────────────────────────────────
   {
     id: 'hbm-total', label: 'Pooled HBM3e per rack', value: '~13.5', unit: 'TB',
     range: '13.4 – 13.8 TB', disputed: true,
-    note: 'Sources differ on rounding and on whether the figure is physical or usable-after-ECC capacity.',
-    sources: ['nv-gb200', 'semianalysis-gb200'],
+    note: 'Sources differ on rounding, on physical versus usable-after-ECC capacity, and on SKU. NVIDIA’s 192 GB per GPU gives 13.82 TB physical and 12.96 TB after ECC; Supermicro’s datasheet quotes up to 372 GB per Superchip — 186 GB per GPU — which is where the 13.4 TB figure comes from.',
+    sources: ['nv-gb200', 'supermicro', 'semianalysis-gb200'],
   },
   { id: 'hbm-per-gpu', label: 'HBM3e per Blackwell GPU', value: '192', unit: 'GB', note: '180 GB usable after ECC.', sources: ['nv-blackwell'] },
   { id: 'hbm-bw', label: 'Memory bandwidth per GPU', value: '8', unit: 'TB/s', sources: ['nv-blackwell'] },
@@ -81,20 +83,25 @@ const list: Spec[] = [
   // ── Power & cooling ────────────────────────────────────────────────────
   {
     id: 'rack-power', label: 'Rack power', value: '~120', unit: 'kW',
-    range: '120 kW nominal, 130–132 kW observed at full load', disputed: true,
-    note: 'Schneider Electric: "When fully loaded into a rack, the latest NVIDIA-based GPU servers require 132 kW of power."',
-    sources: ['schneider', 'sth-teardown'],
+    range: '120 kW nominal · 125–135 kW operating (Supermicro) · 132 kW fully loaded (Schneider Electric)', disputed: true,
+    note: 'Supermicro’s datasheet states an operating power of 125–135 kW and 132 kW of installed power-shelf capacity. Steven Carlini, writing for Schneider Electric: "When fully loaded into a rack, the latest NVIDIA-based GPU servers require 132 kW of power." The commonly quoted ~120 kW is the nominal design figure, not a measured ceiling.',
+    sources: ['supermicro', 'schneider', 'sth-teardown'],
   },
-  { id: 'per-gpu-power', label: 'Power per GPU', value: '~1,200', unit: 'W', sources: ['schneider'] },
+  { id: 'per-gpu-power', label: 'Power per GPU', value: '~1,200', unit: 'W', note: 'The commonly cited per-GPU board power for Blackwell in GB200. Rack power divided by 72 lands higher because the figure excludes the CPUs, NVSwitch trays, NICs and conversion losses.', sources: ['semianalysis-gb200', 'nv-blackwell'] },
   { id: 'mean-rack', label: 'Worldwide mean rack density', value: '7.6', unit: 'kW', note: 'Up from 6.8 kW the prior year; 8.4 kW if racks above 30 kW are excluded. An NVL72 is roughly sixteen average racks in one footprint.', sources: ['uptime-2025'] },
-  { id: 'inlet-temp', label: 'Coolant inlet temperature', value: '32 – 45', unit: '°C', note: 'NVIDIA ACS reference design. QCT specifies 45 °C max inlet, 65 °C max return. Warm water is the point: it enables free cooling.', sources: ['qct'] },
+  { id: 'inlet-temp', label: 'Coolant inlet temperature', value: '32 – 45', unit: '°C', note: 'NVIDIA ACS reference design. A 45 °C maximum inlet and 65 °C maximum return are attributed to QCT across several sources; that document could not be read directly, so treat the limits as second-hand. Warm water is the point either way: it is what enables free cooling.', sources: ['qct'] },
   {
     id: 'flow-rate', label: 'Coolant flow', value: '~2–3 L/min per module', 
     range: '2–3 L/min per module · 30–40 L/min per rack (NVIDIA ACS) · up to ~130 L/min per rack (QCT)', disputed: true,
     note: 'Figures vary by whether they are quoted per cold plate or per rack, and by the assumed ΔT. Always state the basis.',
     sources: ['qct'],
   },
-  { id: 'retrofit-cost', label: 'Retrofit cost for liquid cooling', value: '$5 – 10', unit: 'M per MW', sources: ['schneider'] },
+  {
+    id: 'retrofit-cost', label: 'Cost of liquid cooling per MW', value: '~$2M retrofit',
+    range: '~$2M per MW to retrofit · upwards of $11M per MW for a new greenfield liquid-cooled build', disputed: true,
+    note: 'STL Partners, May 2026. A widely repeated "$5–10M per MW" retrofit figure is often attributed to Schneider Electric; it does not appear in the Schneider article this site cites, and no primary source for it could be found — so it is not used here.',
+    sources: ['stl-retrofit'],
+  },
 
   // ── Scale-out ──────────────────────────────────────────────────────────
   { id: 'superpod-racks', label: 'NVL72 racks per SuperPOD', value: '8', sources: ['nv-gb200'] },
@@ -107,18 +114,19 @@ const list: Spec[] = [
   { id: 'quantum-x800', label: 'Quantum-X800 InfiniBand switch', value: '144 × 800', unit: 'Gb/s', note: 'Q3400.', sources: ['nv-gb200'] },
 
   // ── Results ────────────────────────────────────────────────────────────
-  { id: 'mlperf-405b', label: 'Llama 3.1 405B training time', value: '27.3', unit: 'min', note: 'MLPerf Training v5.0, June 2025: 2,496 Blackwell GPUs across 39 racks — the largest GB200 NVL72 cluster benchmarked at the time. An H100-equivalent run needed roughly 156 racks. A later round used 5,120 GB200 GPUs for about 10 minutes.', sources: ['coreweave-pr', 'mlcommons'] },
+  { id: 'mlperf-405b', label: 'Llama 3.1 405B training time', value: '27.3', unit: 'min', note: 'MLPerf Training v5.0, 4 June 2025: 27.33 minutes on 2,496 Blackwell GPUs across 39 racks running 64 active GPUs each — not fully populated 72-GPU racks, which is why 2,496 does not divide by 72. CoreWeave puts an equivalent H100 setup at around 156 racks, assuming 32 GPUs per rack. A later round reached about 10 minutes on more than 5,000 Blackwell GPUs.', sources: ['coreweave-pr', 'mlcommons'] },
   { id: 'mlperf-nvfp4', label: 'Blackwell NVFP4 training speedup vs Hopper FP8', value: 'up to 3.2×', note: 'MLPerf Training v5.1, Llama 3.1 405B, at the same GPU count.', sources: ['nv-devblog-mlperf'] },
   { id: 'mlperf-ultra', label: 'GB300 training speedup', value: '4.2× vs Hopper, 1.9× vs GB200', note: 'At 512-GPU scale.', sources: ['nv-devblog-mlperf'] },
-  { id: 'disagg-gain', label: 'Disaggregated vs aggregated serving', value: '~1.5×', unit: 'throughput', note: 'MLPerf Inference v5.1, Llama 3.1 405B interactive.', sources: ['mlcommons', 'nv-dynamo'] },
-  { id: 'inference-30x', label: 'Real-time trillion-parameter LLM inference', value: '30×', note: 'NVIDIA’s measured configuration: TTL = 50 ms, FTL = 5 s, 32,768 input / 1,024 output tokens, GPT-MoE-1.8T, comparing 64 Hopper GPUs over InfiniBand against 32 Blackwell GPUs in an NVL72. Not a like-for-like GPU count.', sources: ['nv-gb200'] },
+  { id: 'disagg-gain', label: 'Disaggregated vs aggregated serving', value: '~1.5×', unit: 'throughput', note: 'MLPerf Inference v5.1, Llama 3.1 405B interactive.', sources: ['mlcommons', 'nv-dynamo', 'nv-devblog-moe'] },
+  { id: 'inference-30x', label: 'Real-time trillion-parameter LLM inference', value: '30×', note: 'NVIDIA’s measured configuration: TTL = 50 ms, FTL = 5 s, 32,768 input / 1,024 output tokens, GPT-MoE-1.8T, comparing 64 Hopper GPUs over InfiniBand against 32 Blackwell GPUs in an NVL72. Not a like-for-like GPU count.', sources: ['nv-gb200', 'nv-devblog-nvl72'] },
   { id: 'moe-10x', label: 'Mixture-of-experts performance', value: '10×', note: 'Same measured configuration as the 30× figure.', sources: ['nv-gb200'] },
 
   // ── Roadmap (announced, not measured) ──────────────────────────────────
-  { id: 'gb300-hbm', label: 'HBM3e per Blackwell Ultra GPU', value: '288', unit: 'GB', range: '279 GB vs 288 GB', disputed: true, note: 'The discrepancy is SKU and ECC accounting.', sources: ['nv-gb300'] },
+  { id: 'gb300-hbm', label: 'HBM3e per Blackwell Ultra GPU', value: '288', unit: 'GB', range: '279 GB vs 288 GB', disputed: true, note: 'SKU and ECC accounting. Note that NVIDIA’s own MLPerf Training v5.1 blog quotes 279 GB, so this is not simply a case of secondary sources getting it wrong.', sources: ['nv-gb300', 'nv-devblog-mlperf'] },
   { id: 'gb300-power', label: 'Power per Blackwell Ultra GPU', value: '~1,400', unit: 'W', sources: ['nv-gb300'] },
   { id: 'gb300-fp4', label: 'GB300 FP4 uplift', value: '1.5×', note: 'Relative to GB200.', sources: ['nv-gb300'] },
   { id: 'rubin-fp4', label: 'Vera Rubin NVL144 FP4', value: '~3.6', unit: 'EF', announced: true, note: 'Announced for 2H 2026. Note that "144" counts dies, not packages — there are 72 Rubin packages.', sources: ['nv-gb300'] },
+  { id: 'power-smoothing', label: 'Reduction in peak grid demand from power smoothing', value: 'up to 30', unit: '%', note: 'Measured on GB300 NVL72 training Megatron, using programmable power caps, energy-storage-enhanced power shelves with integrated electrolytic capacitors, and a hardware power burner across ramp-up, steady-state and ramp-down. NVIDIA states the feature is also coming to GB200 NVL72.', sources: ['nv-devblog-power'] },
   { id: 'next-gen-power', label: 'Next-generation rack power', value: '240', unit: 'kW', announced: true, note: 'Schneider Electric, forward-looking: "The next generation, expected in under a year, will require 240 kW per rack."', sources: ['schneider'] },
 ];
 

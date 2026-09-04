@@ -45,7 +45,7 @@ export const partInfo: PartInfo[] = [
     label: 'Busbar',
     group: 'power',
     count: '1, full height',
-    summary: 'A single shared conductor feeding every tray, replacing 27 pairs of redundant PSUs.',
+    summary: 'A single shared conductor rated for 1,400 A, feeding every tray and replacing 27 pairs of redundant PSUs.',
     detail:
       'Rack-level power shelves rectify facility input once and drive the busbar; trays tap it directly. Converting power once at rack scale is more efficient than converting it 54 times at server scale, and it reclaims the volume those supplies would have occupied.',
   },
@@ -53,10 +53,10 @@ export const partInfo: PartInfo[] = [
     id: 'psu',
     label: 'Power shelf',
     group: 'power',
-    count: '3',
-    summary: 'Converts facility input for the whole rack — roughly 120 kW nominal.',
+    count: '8 × 1U, in banks of 4',
+    summary: 'Eight 33 kW shelves — 132 kW of installed capacity — converting facility input for the whole rack.',
     detail:
-      'At 120 kW this rack draws what sixteen average data-centre racks draw. The worldwide mean rack density is 7.6 kW; almost no existing hall is built for one of these, let alone a row.',
+      'Each shelf holds six 5.5 kW supplies, and the eight are arranged 4 + 4. Supermicro quotes an operating power of 125–135 kW for the loaded rack. For scale: the worldwide mean rack density is 7.6 kW, so this is roughly sixteen average racks in one footprint, and almost no existing hall is built for one of these — let alone a row.',
   },
   {
     id: 'manifold',
@@ -81,9 +81,9 @@ export const partInfo: PartInfo[] = [
     label: 'Rack frame',
     group: 'frame',
     count: '1',
-    summary: 'ORv3-inspired, roughly 2.2 m × 0.6 m × 1.2 m, about 1.36 tonnes loaded.',
+    summary: 'ORv3-inspired, 2,236 × 600 × 1,068 mm, about 1.36 tonnes loaded.',
     detail:
-      'The mass is a real constraint: 1.36 tonnes concentrated in half a square metre exceeds the floor loading many raised-floor halls were designed for, which is one of several reasons NVL72 tends to land in purpose-built space.',
+      'The mass is a real constraint: 1.36 tonnes over a 0.64 m² footprint is more than two tonnes per square metre, which exceeds the floor loading many raised-floor halls were designed for. NVIDIA’s OCP contribution describes over 100 lb of added reinforcement steel in the frame alone.',
   },
 ];
 

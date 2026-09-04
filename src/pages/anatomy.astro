@@ -63,10 +63,11 @@ import { partInfo } from '../scripts/rack-parts';
 
     <L min={3}>
       <p>
-        Group sizes above and below the switch band are not symmetric — public teardowns show
-        eight trays in one group and ten in the other, with power shelves interleaved at the top,
-        middle and bottom of the stack. The asymmetry follows from busbar tap placement and from
-        the height the CDU occupies at the base, not from anything electrical about the fabric.
+        Group sizes above and below the switch band are not symmetric. Supermicro's rack diagram
+        lists ten compute trays above the NVLink switches and eight below, with the eight power
+        shelves in two banks of four rather than interleaved between tray groups, and the CDU at
+        the base.<Cite ids="supermicro" /> The asymmetry follows from what the CDU and the shelf
+        banks occupy at the ends of the rack, not from anything electrical about the fabric.
       </p>
       <p>
         Service implications are worth stating plainly. Every tray is front-serviceable and
@@ -111,21 +112,24 @@ import { partInfo } from '../scripts/rack-parts';
 
     <SpecTable
       caption="Rack"
-      ids={['rack-height', 'rack-width', 'rack-depth', 'rack-weight', 'compute-trays', 'switch-trays', 'switch-asics', 'superchips', 'rack-power']}
+      ids={['rack-height', 'rack-width', 'rack-depth', 'rack-weight', 'compute-trays', 'switch-trays', 'switch-asics', 'superchips', 'power-shelves', 'busbar-current', 'rack-power']}
     />
 
     <Deeper title="Why 1.36 tonnes is a bigger problem than it sounds">
       <p>
-        Spread over the rack's roughly 0.72 m² footprint, <S id="rack-weight" /> is well over a
-        tonne per square metre — before you account for the fact that raised-floor tiles are rated
-        for distributed load, not for four castors. Many existing halls are rated around 700–1,200
-        kg/m², so an NVL72 is at or past the limit of the floor it would sit on, and the delivery
-        path to get it there has its own limits.
+        Spread over the rack's 0.64 m² footprint — <S id="rack-width" /> by
+        <S id="rack-depth" /> — <S id="rack-weight" /> is over two tonnes per square metre, before
+        you account for the fact that raised-floor tiles are rated for distributed load, not for
+        four castors. Many existing halls are rated around 700–1,200 kg/m², so an NVL72 is at or
+        past the limit of the floor it would sit on, and the delivery path to get it there has its
+        own limits.
       </p>
       <p>
-        Combined with the <S id="retrofit-cost" /> typically quoted to add liquid cooling to
-        existing space,<Cite ids="schneider" /> this is a large part of why these racks
-        concentrate in new build rather than spreading into existing colocation.
+        Combined with the <S id="retrofit-cost" /> quoted to add liquid cooling to existing
+        space,<Cite ids="stl-retrofit" /> this is a large part of why these racks concentrate in
+        new build rather than spreading into existing colocation — though the same research puts
+        a new greenfield liquid-cooled build at roughly five times the per-megawatt cost of a
+        retrofit, so the trade is not one-sided.
       </p>
     </Deeper>
 

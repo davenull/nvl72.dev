@@ -82,7 +82,8 @@ import SpecTable from '../components/SpecTable.astro';
         Blackwell Ultra keeps the rack shape and changes what is in the trays:
         <S id="gb300-hbm" /> of HBM3e per GPU against 192 GB, <S id="gb300-power" /> per GPU
         against roughly 1,200 W, and <S id="gb300-fp4" /> the FP4 throughput. Scale-out moves from
-        ConnectX-7 at <S id="cx7" bare /> to ConnectX-8 at <S id="cx8" bare />.<Cite ids="nv-gb300" />
+        ConnectX-7 at <S id="cx7" bare /> to ConnectX-8 at <S id="cx8" bare
+        />.<Cite ids={['nv-gb300', 'nv-devblog-ultra']} />
       </p>
       <p>
         The capacity increase is the consequential one. Fifty percent more HBM per GPU is fifty
@@ -106,6 +107,14 @@ import SpecTable from '../components/SpecTable.astro';
     <p>
       Announced for the second half of 2026: Rubin GPUs with HBM4, a Vera CPU, and roughly
       <S id="rubin-fp4" /> of FP4 in an NVL144 rack.
+    </p>
+
+    <p>
+      GB300 also brings the power-smoothing hardware described in
+      <a href="/power-cooling#load-swings">Chapter 6</a> — programmable caps, capacitor-backed power
+      shelves and a hardware power burner, measured at <S id="power-smoothing" /> off peak grid
+      demand.<Cite ids="nv-devblog-power" /> That is a roadmap item aimed at the facility rather
+      than the silicon, and it is a fair signal of where the binding constraint is moving.
     </p>
 
     <L min={2}>

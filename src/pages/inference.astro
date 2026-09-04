@@ -123,8 +123,8 @@ import SpecTable from '../components/SpecTable.astro';
         Wide expert parallelism is the second-order effect and arguably the larger one. Spreading a
         <T id="moe">mixture-of-experts</T> model's experts across many GPUs cuts the weight memory
         each GPU holds, which frees HBM for KV cache and larger batches, which is precisely what a
-        memory-bound decode phase needs. The cost is an all-to-all exchange on every layer whose
-        size grows with the number of participating GPUs.
+        memory-bound decode phase needs.<Cite ids="nv-devblog-widep" /> The cost is an all-to-all
+        exchange on every layer whose size grows with the number of participating GPUs.
       </p>
       <p>
         That exchange is what makes wide EP unaffordable on a scale-out fabric and affordable here:
@@ -159,8 +159,9 @@ import SpecTable from '../components/SpecTable.astro';
       <li>
         <strong>Domain boundaries.</strong> <T id="mnnvl">MNNVL</T> and the IMEX service let GPU
         memory be exported across OS domains; Kubernetes models this with a ComputeDomain resource
-        via the GPU Operator and DRA driver.<Cite ids="nv-mnnvl" /> The NVLink domain and the
-        scheduling domain are separate concepts.
+        via the GPU Operator and DRA driver.<Cite ids={['nv-mnnvl', 'nv-imex']} /> IMEX itself does
+        not depend on CUDA — it brokers the export/import handshake between compute nodes over TCP
+        and gRPC. The NVLink domain and the scheduling domain are separate concepts.
       </li>
       <li>
         <strong>Partitioning.</strong> <T id="mig">MIG</T> still slices a single GPU into isolated

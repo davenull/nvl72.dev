@@ -46,19 +46,25 @@ interface Options {
 }
 
 /* ── Dimensions (metres) ─────────────────────────────────────────────── */
+// Supermicro's GB200 NVL72 datasheet: 2236 x 600 x 1068 mm.
 const W = 0.6;          // rack width
-const D = 1.2;          // rack depth
+const D = 1.068;        // rack depth
 const TRAY_W = 0.54;
 const TRAY_D = 0.92;
 const U = 0.0445;       // 1U
 const PITCH = 0.052;    // 1U plus service gap
-const SHELF_H = 0.09;
+const SHELF_H = 0.048;  // power shelves are 1U too
 const CDU_H = 0.16;
 const BASE_H = 0.08;
-const TOP_H = 0.14;
+const TOP_H = 0.2;      // management switches and cable management
 
-const N_COMPUTE_LOWER = 10;
-const N_COMPUTE_UPPER = 8;
+// Eight power shelves in two banks of four, per the Supermicro datasheet
+// ("shared power through 4+4 rack power shelves", 8 x 1U 33 kW = 132 kW).
+const N_SHELF_BANK = 4;
+// Compute trays split 8 below the switch band and 10 above it, matching the
+// ordering in Supermicro's rack diagram.
+const N_COMPUTE_LOWER = 8;
+const N_COMPUTE_UPPER = 10;
 const N_SWITCH = 9;
 
 function cssColor(name: string, fallback: string): THREE.Color {
@@ -153,12 +159,13 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
   let y = BASE_H;
   const slots: { kind: string; y: number; i?: number }[] = [];
   slots.push({ kind: 'cdu', y: y + CDU_H / 2 }); y += CDU_H;
-  slots.push({ kind: 'psu', y: y + SHELF_H / 2, i: 0 }); y += SHELF_H;
+  for (let i = 0; i < N_SHELF_BANK; i++) { slots.push({ kind: 'psu', y: y + SHELF_H / 2, i }); y += SHELF_H; }
+  const trayBandBottom = y;
   for (let i = 0; i < N_COMPUTE_LOWER; i++) { slots.push({ kind: 'compute', y: y + U / 2, i }); y += PITCH; }
-  slots.push({ kind: 'psu', y: y + SHELF_H / 2, i: 1 }); y += SHELF_H;
   for (let i = 0; i < N_SWITCH; i++) { slots.push({ kind: 'switch', y: y + U / 2, i }); y += PITCH; }
-  slots.push({ kind: 'psu', y: y + SHELF_H / 2, i: 2 }); y += SHELF_H;
   for (let i = 0; i < N_COMPUTE_UPPER; i++) { slots.push({ kind: 'compute', y: y + U / 2, i: N_COMPUTE_LOWER + i }); y += PITCH; }
+  const trayBandTop = y;
+  for (let i = 0; i < N_SHELF_BANK; i++) { slots.push({ kind: 'psu', y: y + SHELF_H / 2, i: N_SHELF_BANK + i }); y += SHELF_H; }
   y += TOP_H;
   const H = y;
   const midY = H / 2;
@@ -284,9 +291,8 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
   {
     // Four cable cartridges spanning the switch band, drawn as dense copper
     // ribbons rather than 5,000 individual cables — the count is stated in text.
-    const bandBottom = BASE_H + CDU_H + SHELF_H;
-    const bandTop = bandBottom + N_COMPUTE_LOWER * PITCH + SHELF_H + N_SWITCH * PITCH + SHELF_H + N_COMPUTE_UPPER * PITCH;
-    const h = bandTop - bandBottom;
+    const bandBottom = trayBandBottom;
+    const h = trayBandTop - trayBandBottom;
     for (let c = 0; c < 4; c++) {
       const cart = new THREE.Mesh(box(0.11, h * 0.94, 0.05), mat.copper);
       cart.position.set(-0.18 + c * 0.12, bandBottom + h / 2, -D / 2 + 0.09);

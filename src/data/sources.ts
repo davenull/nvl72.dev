@@ -5,18 +5,20 @@ export interface Source {
   title: string;
   publisher: string;
   kind: SourceKind;
-  /** Omitted where the exact deep link still needs confirming — see `verified`. */
   url?: string;
   /**
-   * false = the claim comes from the research report's citation of this source,
-   * but the exact document/URL has not been re-checked against the publisher.
-   * The sources page surfaces these so they can be closed out before launch.
+   * true = the document at `url` was opened and confirmed to contain the claim
+   * it is cited for. false = the claim is inherited from the research report and
+   * the document could not be independently read; those are listed on /sources.
    */
   verified: boolean;
+  /** Publication date where the source is a dated article rather than a living page. */
+  date?: string;
   note?: string;
 }
 
 export const sources: Source[] = [
+  // ── NVIDIA product pages ────────────────────────────────────────────
   {
     id: 'nv-gb200',
     title: 'GB200 NVL72 product page',
@@ -24,7 +26,7 @@ export const sources: Source[] = [
     kind: 'primary',
     url: 'https://www.nvidia.com/en-us/data-center/gb200-nvl72/',
     verified: true,
-    note: 'Source of the "acts as a single, massive GPU" framing and the 30x/10x inference claims.',
+    note: 'Source of the "acts as a single, massive GPU" framing and the 30× / 10× inference claims, with their measured configuration.',
   },
   {
     id: 'nv-gb300',
@@ -44,12 +46,12 @@ export const sources: Source[] = [
   },
   {
     id: 'nv-grace',
-    title: 'Grace CPU Superchip datasheet',
+    title: 'Grace CPU Superchip',
     publisher: 'NVIDIA',
     kind: 'primary',
     url: 'https://www.nvidia.com/en-us/data-center/grace-cpu-superchip/',
     verified: true,
-    note: 'Quotes 512 GB LPDDR5X / 546 GB/s for the standalone superchip; the GB200 Grace differs.',
+    note: 'Describes the standalone Grace Superchip. The GB200 Grace is configured differently — do not capacity-plan from this page.',
   },
   {
     id: 'nv-nvlink',
@@ -59,23 +61,95 @@ export const sources: Source[] = [
     url: 'https://www.nvidia.com/en-us/data-center/nvlink/',
     verified: true,
   },
+
+  // ── NVIDIA Technical Blog ───────────────────────────────────────────
   {
     id: 'nv-devblog-nvl72',
-    title: 'GB200 NVL72 Delivers Trillion-Parameter LLM Training and Real-Time Inference',
+    title: 'NVIDIA GB200 NVL72 Delivers Trillion-Parameter LLM Training and Real-Time Inference',
     publisher: 'NVIDIA Technical Blog',
     kind: 'primary',
-    url: 'https://developer.nvidia.com/blog/',
-    verified: false,
-    note: 'Deep link not confirmed; locate the post on the NVIDIA Technical Blog before launch.',
+    url: 'https://developer.nvidia.com/blog/nvidia-gb200-nvl72-delivers-trillion-parameter-llm-training-and-real-time-inference/',
+    verified: true,
+    note: 'Confirms 900 GB/s NVLink-C2C, 30 TB unified memory, 130 TB/s fabric, and the 30× GPT-MoE-1.8T figure.',
   },
   {
     id: 'nv-devblog-mlperf',
-    title: 'MLPerf Training v5.1 results on GB200/GB300 NVL72',
+    title: 'NVIDIA Blackwell Architecture Sweeps MLPerf Training v5.1 Benchmarks',
     publisher: 'NVIDIA Technical Blog',
     kind: 'primary',
-    url: 'https://developer.nvidia.com/blog/',
-    verified: false,
-    note: 'Origin of the 3.2x-over-Hopper and 4.2x/1.9x Blackwell Ultra training figures.',
+    url: 'https://developer.nvidia.com/blog/nvidia-blackwell-architecture-sweeps-mlperf-training-v5-1-benchmarks/',
+    verified: true,
+    note: 'GB300 NVL72 debut in MLPerf Training; NVFP4 used in training for the first time; the 10-minute Llama 3.1 405B record on more than 5,000 Blackwell GPUs.',
+  },
+  {
+    id: 'nv-devblog-moe',
+    title: 'How NVIDIA GB200 NVL72 and NVIDIA Dynamo Boost Inference Performance for MoE Models',
+    publisher: 'NVIDIA Technical Blog',
+    kind: 'primary',
+    url: 'https://developer.nvidia.com/blog/how-nvidia-gb200-nvl72-and-nvidia-dynamo-boost-inference-performance-for-moe-models/',
+    verified: true,
+  },
+  {
+    id: 'nv-devblog-widep',
+    title: 'Scaling Large MoE Models with Wide Expert Parallelism on NVL72 Rack-Scale Systems',
+    publisher: 'NVIDIA Technical Blog',
+    kind: 'primary',
+    url: 'https://developer.nvidia.com/blog/scaling-large-moe-models-with-wide-expert-parallelism-on-nvl72-rack-scale-systems/',
+    verified: true,
+  },
+  {
+    id: 'nv-devblog-power',
+    title: 'How New GB300 NVL72 Features Provide Steady Power for AI',
+    publisher: 'NVIDIA Technical Blog',
+    kind: 'primary',
+    url: 'https://developer.nvidia.com/blog/how-new-gb300-nvl72-features-provide-steady-power-for-ai/',
+    verified: true,
+    note: 'The power-smoothing source: programmable power caps, integrated electrolytic capacitors, a hardware power burner, and a measured 30% reduction in peak grid demand training Megatron.',
+  },
+  {
+    id: 'nv-devblog-ultra',
+    title: 'Inside NVIDIA Blackwell Ultra: The Chip Powering the AI Factory Era',
+    publisher: 'NVIDIA Technical Blog',
+    kind: 'primary',
+    url: 'https://developer.nvidia.com/blog/inside-nvidia-blackwell-ultra-the-chip-powering-the-ai-factory-era/',
+    verified: true,
+  },
+  {
+    id: 'nv-ocp',
+    title: 'NVIDIA Contributes NVIDIA GB200 NVL72 Designs to the Open Compute Project',
+    publisher: 'NVIDIA Technical Blog',
+    kind: 'standard',
+    url: 'https://developer.nvidia.com/blog/nvidia-contributes-nvidia-gb200-nvl72-designs-to-open-compute-project/',
+    verified: true,
+    note: 'Specifies four NVLink cartridges with over 5,000 copper cables delivering 260 TB/s AllReduce bandwidth, a 1,400 A busbar, and over 100 lb of rack reinforcement steel.',
+  },
+
+  // ── NVIDIA docs ─────────────────────────────────────────────────────
+  {
+    id: 'nv-mnnvl',
+    title: 'MNNVL User Guide — Overview',
+    publisher: 'NVIDIA Docs',
+    kind: 'primary',
+    url: 'https://docs.nvidia.com/multi-node-nvlink-systems/mnnvl-user-guide/overview.html',
+    verified: true,
+  },
+  {
+    id: 'nv-imex',
+    title: 'NVIDIA IMEX Service for NVLink Networks — Overview',
+    publisher: 'NVIDIA Docs',
+    kind: 'primary',
+    url: 'https://docs.nvidia.com/multi-node-nvlink-systems/imex-guide/overview.html',
+    verified: true,
+    note: 'IMEX brokers GPU memory export/import across OS domains over NVLink; it does not depend on CUDA and communicates over TCP and gRPC.',
+  },
+  {
+    id: 'nv-tuning',
+    title: 'GB200 NVL Multi-Node Tuning Guide — Power and Thermals',
+    publisher: 'NVIDIA Docs',
+    kind: 'primary',
+    url: 'https://docs.nvidia.com/multi-node-nvlink-systems/multi-node-tuning-guide/power-thermals.html',
+    verified: true,
+    note: 'Names Power Smoothing as implemented for bulk synchronous workloads, and covers power balancing within a provisioned rack limit.',
   },
   {
     id: 'nv-dynamo',
@@ -85,23 +159,8 @@ export const sources: Source[] = [
     url: 'https://github.com/ai-dynamo/dynamo',
     verified: true,
   },
-  {
-    id: 'nv-mnnvl',
-    title: 'Multi-Node NVLink (MNNVL) and the IMEX service',
-    publisher: 'NVIDIA Docs',
-    kind: 'primary',
-    url: 'https://docs.nvidia.com/',
-    verified: false,
-  },
-  {
-    id: 'nv-ocp',
-    title: "NVIDIA's GB200 NVL72 contribution to the Open Compute Project",
-    publisher: 'NVIDIA / OCP',
-    kind: 'standard',
-    url: 'https://www.opencompute.org/',
-    verified: false,
-    note: 'Specifies four NVLink cartridges, >5,000 copper cables, 260 TB/s AllReduce bandwidth.',
-  },
+
+  // ── Benchmarks ──────────────────────────────────────────────────────
   {
     id: 'mlcommons',
     title: 'MLPerf Inference & Training results',
@@ -112,59 +171,41 @@ export const sources: Source[] = [
   },
   {
     id: 'coreweave-pr',
-    title: 'MLPerf Training v5.0: 2,496 Blackwell GPUs, Llama 3.1 405B in 27.3 minutes',
-    publisher: 'CoreWeave / NVIDIA / IBM',
+    title: 'CoreWeave, NVIDIA and IBM Set MLPerf Record with the Largest GB200 Blackwell Cluster',
+    publisher: 'CoreWeave',
     kind: 'vendor',
-    verified: false,
-    note: 'June 2025 joint press release.',
+    url: 'https://www.coreweave.com/blog/coreweave-nvidia-and-ibm-set-mlperf-record-with-largest-nvidia-gb200-blackwell-cluster-achieving-over-2x-faster-training',
+    verified: true,
+    date: '4 June 2025',
+    note: 'Confirmed verbatim: "2,496 NVIDIA Blackwell GPUs across 39 racks, each containing 64 active GPUs", Llama 3.1 405B "completed in 27.33 minutes", against "around 156 racks" for an equivalent H100 setup at 32 GPUs per rack.',
   },
+
+  // ── Independent analysis ────────────────────────────────────────────
   {
     id: 'semianalysis-gb200',
-    title: 'GB200 hardware architecture and component supply chain',
+    title: 'GB200 Hardware Architecture — Component Supply Chain & BOM',
     publisher: 'SemiAnalysis',
     kind: 'independent',
-    url: 'https://semianalysis.com/',
-    verified: false,
-  },
-  {
-    id: 'semianalysis-optical',
-    title: "Nvidia's Optical Boogeyman",
-    publisher: 'SemiAnalysis',
-    kind: 'independent',
-    url: 'https://semianalysis.com/',
-    verified: false,
-    note: 'Computes ~19.4 kW/rack for an all-optical NVLink spine (648 × 1.6T transceivers ≈ 30 W each).',
-  },
-  {
-    id: 'sth-teardown',
-    title: 'GB200 NVL72 rack teardown and NVLink spine walkthrough',
-    publisher: 'ServeTheHome',
-    kind: 'independent',
-    url: 'https://www.servethehome.com/',
-    verified: false,
-  },
-  {
-    id: 'supermicro',
-    title: 'GB200 NVL72 rack-scale solution datasheet',
-    publisher: 'Supermicro',
-    kind: 'vendor',
-    url: 'https://www.supermicro.com/en/accelerators/nvidia',
+    url: 'https://newsletter.semianalysis.com/p/gb200-hardware-architecture-and-component',
     verified: true,
   },
   {
-    id: 'qct',
-    title: 'QCT GB200 NVL72 rack specification',
-    publisher: 'QCT',
-    kind: 'vendor',
-    verified: false,
-    note: 'Source of the 45 °C max inlet / 65 °C max return and ~130 L/min per-rack flow figures.',
+    id: 'semianalysis-optical',
+    title: "Nvidia's Optical Boogeyman — NVL72, InfiniBand Scale Out, 800G & 1.6T Ramp",
+    publisher: 'SemiAnalysis',
+    kind: 'independent',
+    url: 'https://newsletter.semianalysis.com/p/nvidias-optical-boogeyman-nvl72-infiniband',
+    verified: true,
+    note: 'Running the NVLink spine over optics would add roughly 20 kW for transceivers and retimers alone. Also the origin of the 5,184 cable count.',
   },
   {
-    id: 'schneider',
-    title: 'Steven Carlini on 132 kW racks and the 240 kW next generation',
-    publisher: 'Schneider Electric',
+    id: 'sth-teardown',
+    title: 'This is the NVIDIA DGX GB200 NVL72',
+    publisher: 'ServeTheHome',
     kind: 'independent',
-    verified: false,
+    url: 'https://www.servethehome.com/this-is-the-nvidia-dgx-gb200-nvl72/',
+    verified: true,
+    note: 'Teardown coverage: half-width nodes two-abreast in 1U, nine switch trays of two chips each, four ports and 18 links per chip, power shelves and the CDU below the compute nodes.',
   },
   {
     id: 'uptime-2025',
@@ -182,30 +223,48 @@ export const sources: Source[] = [
     url: 'https://www.glennklockwood.com/',
     verified: true,
   },
+
+  // ── Vendors & integrators ───────────────────────────────────────────
   {
-    id: 'cf-static-assets',
-    title: 'Workers Static Assets',
-    publisher: 'Cloudflare Docs',
-    kind: 'primary',
-    url: 'https://developers.cloudflare.com/workers/static-assets/',
+    id: 'supermicro',
+    title: 'Supermicro NVIDIA GB200 NVL72 SuperCluster datasheet (PDF)',
+    publisher: 'Supermicro',
+    kind: 'vendor',
+    url: 'https://www.supermicro.com/datasheet/datasheet_SuperCluster_GB200_NVL72.pdf',
     verified: true,
+    note: 'Read directly. Rack 2236 × 600 × 1068 mm; 8 × 1U 33 kW power shelves totalling 132 kW; operating power 125–135 kW; 10 + 8 compute trays around 9 NVLink switch trays; up to 372 GB HBM3e and 480 GB LPDDR5X per Superchip; in-rack 250 kW CDU.',
   },
   {
-    id: 'cf-pricing',
-    title: 'Workers pricing',
-    publisher: 'Cloudflare Docs',
-    kind: 'primary',
-    url: 'https://developers.cloudflare.com/workers/platform/pricing/',
+    id: 'schneider',
+    title: 'Why Liquid Cooling For AI Data Centers Is Harder Than It Looks',
+    publisher: 'Steven Carlini, Schneider Electric — Forbes Technology Council',
+    kind: 'independent',
+    url: 'https://www.forbes.com/councils/forbestechcouncil/2025/06/30/why-liquid-cooling-for-ai-data-centers-is-harder-than-it-looks/',
     verified: true,
+    date: '30 June 2025',
+    note: 'Confirmed verbatim: "When fully loaded into a rack, the latest NVIDIA-based GPU servers require 132 kW of power" and "The next generation, expected in under a year, will require 240 kW per rack." This article does NOT contain the retrofit-cost figure that is often attributed to it.',
   },
   {
-    id: 'cf-r2-pricing',
-    title: 'R2 pricing',
-    publisher: 'Cloudflare Docs',
-    kind: 'primary',
-    url: 'https://developers.cloudflare.com/r2/pricing/',
+    id: 'stl-retrofit',
+    title: 'The Retrofitting Roadmap: An Evolution of Liquid Cooling',
+    publisher: 'STL Partners (supported by Airedale)',
+    kind: 'independent',
+    url: 'https://stlpartners.com/press/liquid-cooling-retrofits-can-cost-roughly-80-less/',
     verified: true,
+    date: '28 May 2026',
+    note: 'Liquid cooling retrofits at "around USD2 million per MW" against "upwards of USD11 million per MW" for new greenfield liquid-cooled builds.',
   },
+  {
+    id: 'qct',
+    title: 'QCT QoolRack Stand-Alone — Advanced Liquid Cooling for NVIDIA GB200 NVL72 Systems (PDF)',
+    publisher: 'QCT',
+    kind: 'vendor',
+    url: 'https://blog.qct.io/wp-content/uploads/2025/04/QCT-Qoolrack-Stand-Alone_Advanced-Liquid-Cooling-for-NVIDIA-GB200-NVL72-Systems.pdf',
+    verified: false,
+    note: 'The document exists and resolves, but its text is embedded as CID-encoded fonts and could not be extracted, so the 45 °C maximum inlet, 65 °C maximum return and ~130 L/min per-rack figures attributed to it are still second-hand here. Several secondary sources repeat exactly these numbers and credit QCT. Confirm against the readable document before treating them as primary.',
+  },
+
+  // ── Pedagogy ────────────────────────────────────────────────────────
   {
     id: 'ciechanowski',
     title: 'Explorable explainers (Gears, Cameras and Lenses, Internal Combustion Engine)',
@@ -230,6 +289,32 @@ export const sources: Source[] = [
     url: 'https://distill.pub/',
     verified: true,
   },
+
+  // ── Hosting ─────────────────────────────────────────────────────────
+  {
+    id: 'cf-static-assets',
+    title: 'Workers Static Assets',
+    publisher: 'Cloudflare Docs',
+    kind: 'primary',
+    url: 'https://developers.cloudflare.com/workers/static-assets/',
+    verified: true,
+  },
+  {
+    id: 'cf-pricing',
+    title: 'Workers pricing',
+    publisher: 'Cloudflare Docs',
+    kind: 'primary',
+    url: 'https://developers.cloudflare.com/workers/platform/pricing/',
+    verified: true,
+  },
+  {
+    id: 'cf-r2-pricing',
+    title: 'R2 pricing',
+    publisher: 'Cloudflare Docs',
+    kind: 'primary',
+    url: 'https://developers.cloudflare.com/r2/pricing/',
+    verified: true,
+  },
 ];
 
 export const sourceById = new Map(sources.map((s) => [s.id, s]));
@@ -238,6 +323,6 @@ export const kindLabel: Record<SourceKind, string> = {
   primary: 'Primary',
   independent: 'Independent analysis',
   vendor: 'Vendor / integrator',
-  standard: 'Standards body',
+  standard: 'Standards contribution',
   method: 'Pedagogy reference',
 };

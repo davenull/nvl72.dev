@@ -58,11 +58,13 @@ import SpecTable from '../components/SpecTable.astro';
 
     <L min={2}>
       <p>
-        On the electrical side, per-server PSUs are gone. Rack-level power shelves convert facility
-        input once and drive a shared <T id="busbar">busbar</T> that runs the height of the rack;
-        trays draw from it directly.<Cite ids="sth-teardown" /> Converting once at rack scale beats
-        converting fifty-four times at server scale on efficiency, and it reclaims the volume that
-        redundant supplies would have occupied — volume this design needs for cold plates.
+        On the electrical side, per-server PSUs are gone. <S id="power-shelves" /> power shelves —
+        two banks of four, six 5.5 kW supplies each — convert facility input once and drive a
+        shared <T id="busbar">busbar</T> rated for <S id="busbar-current" />, which runs the height
+        of the rack; trays draw from it directly.<Cite ids={['supermicro', 'nv-ocp']} /> Converting
+        once at rack scale beats converting fifty-four times at server scale on efficiency, and it
+        reclaims the volume that redundant supplies would have occupied — volume this design needs
+        for cold plates.
       </p>
       <p>
         On the thermal side there is no air-cooled fallback. Direct-to-chip cold plates cover every
@@ -168,11 +170,18 @@ import SpecTable from '../components/SpecTable.astro';
   <div class="prose">
     <Callout kind="caveat">
       <p>
-        Reconciling the flow figures: 2–3 L/min is a <em>per-module</em> number and 30–40 L/min is
-        quoted for a reference design whose assumed heat load and ΔT are not the same as a fully
-        loaded 120 kW rack. Only the ~130 L/min figure is consistent with removing 120 kW inside a
-        65 °C return limit. Always ask what a flow number is per, and at what load — the widget
-        above is the check.
+        Reconciling the flow figures: 2–3 L/min is a <em>per-module</em> number, and 30–40 L/min is
+        quoted for a reference design whose assumed heat load and ΔT are not those of a fully
+        loaded 120 kW rack. Anything at or above roughly 100 L/min removes 120 kW inside a 65 °C
+        return; 30–40 L/min does not, at any plausible inlet temperature. Always ask what a flow
+        number is per, and at what load — the widget above is the check.
+      </p>
+      <p>
+        One caveat on the limits themselves. The 45 °C maximum inlet and 65 °C maximum return are
+        attributed to QCT by several sources, but that document is a PDF whose text could not be
+        read directly, so those two numbers remain second-hand here. The arithmetic above does not
+        depend on them being exact — it depends only on the fact that a 120 kW load at 35 L/min
+        needs a ~49 K rise, which no coolant loop of this kind is designed for.
       </p>
     </Callout>
 
@@ -183,19 +192,39 @@ import SpecTable from '../components/SpecTable.astro';
       ids={['rack-power', 'per-gpu-power', 'mean-rack', 'inlet-temp', 'flow-rate', 'retrofit-cost', 'rack-weight']}
     />
 
-    <Deeper title="The load-swing problem, and why this site says little about it">
+    <h2 id="load-swings">The load-swing problem</h2>
+
+    <p>
+      A rack like this does not draw a steady 120 kW. Thousands of GPUs in a training run enter and
+      leave collectives in lockstep, so the facility sees something closer to a square wave, and at
+      sufficient scale that becomes a grid-interaction problem rather than a data-centre one.
+    </p>
+
+    <L min={2}>
       <p>
-        Synchronised training loads make a rack like this behave less like a steady 120 kW draw and
-        more like a square wave: thousands of GPUs enter and leave a collective together, and the
-        facility sees the step. At sufficient scale this is a grid-interaction problem, and the
-        mitigations discussed publicly involve capacitance or energy storage at rack or facility
-        level.
+        NVIDIA's multi-node tuning guide names Power Smoothing as the implemented answer for bulk
+        synchronous workloads.<Cite ids="nv-tuning" /> The GB300 NVL72 version combines programmable
+        power caps, energy-storage-enhanced power shelves carrying integrated electrolytic
+        capacitors, and a hardware power burner, with software shaping the ramp-up, steady-state and
+        ramp-down phases. NVIDIA reports a measured reduction in peak grid demand of
+        <S id="power-smoothing" /> while training Megatron, and states the feature is also coming to
+        GB200 NVL72.<Cite ids="nv-devblog-power" />
       </p>
       <p>
-        This is the thinnest-sourced topic in the research behind this site, and it is not written
-        up here in any detail on purpose. Treating it properly needs a dedicated primary source —
-        an NVIDIA or OCP power paper — rather than inference from secondary commentary. It is
-        listed as an open item on <a href="/sources#gaps">the sources page</a>.
+        The power burner is the counter-intuitive part and worth stating plainly: part of the
+        solution to a load that falls too fast is to deliberately waste power so that it falls more
+        slowly. Grid equipment cares about the rate of change, not only the magnitude.
+      </p>
+    </L>
+
+    <Deeper title="Why this section used to be one sentence">
+      <p>
+        The research this site was built from flagged power smoothing as its thinnest-sourced
+        topic and recommended finding a dedicated NVIDIA or OCP power paper before writing it up.
+        That source has since been located — NVIDIA's own tuning guide and the GB300 power blog —
+        so the section above now exists. It is a reasonable illustration of how the
+        <a href="/sources#gaps">known-gaps list</a> is meant to work: a gap is an open item to be
+        closed, not a permanent disclaimer.
       </p>
     </Deeper>
   </div>

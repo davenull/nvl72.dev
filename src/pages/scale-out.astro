@@ -100,9 +100,9 @@ import SpecTable from '../components/SpecTable.astro';
         <T id="mnnvl">Multi-Node NVLink</T> complicates the clean story slightly. The IMEX service
         allows GPU memory to be exported and imported across operating-system domains within an
         NVLink fabric, with Kubernetes modelling the boundary as a ComputeDomain resource via the
-        GPU Operator and DRA driver.<Cite ids="nv-mnnvl" /> The NVLink domain and the OS domain are
-        not the same thing, and treating them as identical is a common source of confusion when
-        scheduling on these racks.
+        GPU Operator and DRA driver.<Cite ids={['nv-mnnvl', 'nv-imex']} /> The NVLink domain and the
+        OS domain are not the same thing, and treating them as identical is a common source of
+        confusion when scheduling on these racks.
       </p>
     </L>
 
