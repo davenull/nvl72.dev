@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { chapters, siblings } from '../data/chapters';
+import { chapters, numbered, siblings } from '../data/chapters';
 
 interface Props {
   title: string;
@@ -12,8 +12,15 @@ interface Props {
 }
 
 const { title, description, kicker, heading, slug } = Astro.props;
-const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+// build.format is 'file', so the pathname carries a .html suffix at build
+// time — without stripping it, nothing ever matched and no chapter was ever
+// marked as the current one in the deployed build.
+const path = Astro.url.pathname
+  .replace(/index\.html$/, '')
+  .replace(/\.html$/, '')
+  .replace(/\/$/, '') || '/';
 const { prev, next } = slug ? siblings(slug) : { prev: undefined, next: undefined };
+const step = siblings(path);
 const full = `${title} · NVL72`;
 ---
 <html lang="en" data-depth="2">
@@ -54,18 +61,48 @@ const full = `${title} · NVL72`;
     <header class="masthead">
       <div class="wrap">
         <a class="brand" href="/">NVL<b>72</b>.dev</a>
-        <nav aria-label="Chapters">
-          {chapters.map((c) => (
-            <a href={c.slug} aria-current={c.slug === path ? 'page' : undefined}>
-              {c.n !== null && <span class="num">{c.n}. </span>}{c.nav}
-            </a>
-          ))}
+        <nav class="stepper" aria-label="Chapters">
+          <ol>
+            {numbered.map((c) => (
+              <li>
+                <a href={c.slug} aria-current={c.slug === path ? 'page' : undefined}>
+                  <span class="dot" aria-hidden="true">{c.n}</span>
+                  <span class="name">{c.title}</span>
+                  <span class="visually-hidden">Chapter {c.n}: {c.title}</span>
+                </a>
+              </li>
+            ))}
+          </ol>
+          <div class="step-arrows">
+            {step.prev ? (
+              <a href={step.prev.slug} rel="prev" aria-label={`Previous: ${step.prev.title}`}>
+                <span aria-hidden="true">‹</span>
+                <span class="name">{step.prev.title}</span>
+              </a>
+            ) : <span class="is-off" aria-hidden="true">‹</span>}
+            {step.next ? (
+              <a href={step.next.slug} rel="next" aria-label={`Next: ${step.next.title}`}>
+                <span aria-hidden="true">›</span>
+                <span class="name">{step.next.title}</span>
+              </a>
+            ) : <span class="is-off" aria-hidden="true">›</span>}
+          </div>
+
+          <span class="rule" aria-hidden="true"></span>
+          <a class="ref" href="/glossary" aria-current={path === '/glossary' ? 'page' : undefined}>Glossary</a>
+          <a class="ref" href="/sources" aria-current={path === '/sources' ? 'page' : undefined}>Sources</a>
         </nav>
         <div class="controls">
-          <div class="depth" role="group" aria-label="Explanation depth">
-            <button type="button" data-depth-set="1" aria-pressed="false" title="Plain-language explanations, minimal jargon">New grad</button>
-            <button type="button" data-depth-set="2" aria-pressed="true" title="Assumes systems background">Engineer</button>
-            <button type="button" data-depth-set="3" aria-pressed="false" title="Port arithmetic, thermal budgets, failure domains">Architect</button>
+          <div class="depth-menu" data-depth-menu>
+            <button class="depth-trigger" type="button" aria-expanded="false" aria-haspopup="true"
+                    aria-controls="depth-options">
+              Depth <b data-depth-label>Engineer</b>
+            </button>
+            <div class="depth depth-panel" id="depth-options" role="group" aria-label="Explanation depth">
+              <button type="button" data-depth-set="1" aria-pressed="false" title="Plain-language explanations, minimal jargon">New grad</button>
+              <button type="button" data-depth-set="2" aria-pressed="true" title="Assumes systems background">Engineer</button>
+              <button type="button" data-depth-set="3" aria-pressed="false" title="Port arithmetic, thermal budgets, failure domains">Architect</button>
+            </div>
           </div>
           <button class="icon-btn" type="button" data-theme-toggle aria-label="Toggle colour theme" title="Toggle colour theme">◐</button>
         </div>
@@ -130,14 +167,45 @@ const full = `${title} · NVL72`;
       // fully readable at depth 2 with this script blocked.
       const root = document.documentElement;
       const btns = document.querySelectorAll<HTMLButtonElement>('[data-depth-set]');
+      const label = document.querySelector<HTMLElement>('[data-depth-label]');
+      const menu = document.querySelector<HTMLElement>('[data-depth-menu]');
+      const trigger = menu?.querySelector<HTMLButtonElement>('.depth-trigger');
+
       const sync = (d: string) => {
         root.dataset.depth = d;
         btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.depthSet === d)));
+        const active = [...btns].find((b) => b.dataset.depthSet === d);
+        if (label && active) label.textContent = active.textContent;
         try { localStorage.setItem('nvl72:depth', d); } catch {}
         window.dispatchEvent(new CustomEvent('nvl72:depth', { detail: d }));
       };
-      btns.forEach((b) => b.addEventListener('click', () => sync(b.dataset.depthSet!)));
+      btns.forEach((b) => b.addEventListener('click', () => {
+        sync(b.dataset.depthSet!);
+        close();
+      }));
       sync(root.dataset.depth ?? '2');
+
+      // The panel opens on hover for pointers; the trigger is a real toggle so
+      // that touch and keyboard get there too.
+      const open = () => {
+        menu?.setAttribute('data-open', 'true');
+        trigger?.setAttribute('aria-expanded', 'true');
+      };
+      const close = () => {
+        menu?.removeAttribute('data-open');
+        trigger?.setAttribute('aria-expanded', 'false');
+      };
+      trigger?.addEventListener('click', () => {
+        if (menu?.hasAttribute('data-open')) close(); else open();
+      });
+      document.addEventListener('click', (e) => {
+        if (menu && !menu.contains(e.target as Node)) close();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape' || !menu?.hasAttribute('data-open')) return;
+        close();
+        trigger?.focus();
+      });
 
       document.querySelector('[data-theme-toggle]')?.addEventListener('click', () => {
         const dark = getComputedStyle(root).colorScheme === 'dark';
