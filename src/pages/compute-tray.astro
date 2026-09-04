@@ -30,10 +30,10 @@ import SpecTable from '../components/SpecTable.astro';
     caption="Looking down on one 1U tray. Coolant enters and leaves at the rear through blind-mate quick disconnects; networking faces the front. Two GB200 boards, each one Grace CPU feeding two Blackwell GPUs over NVLink-C2C. Drawn to approximate proportion, not to scale."
   >
     <svg class="diagram" viewBox="0 0 720 372" role="img" aria-label="Plan view of a 1U compute tray. Coolant quick disconnects along the rear edge, two GB200 boards each with one Grace CPU and two Blackwell GPUs joined by NVLink-C2C, and ConnectX-7 network ports along the front edge." data-tray>
-      <text x="12" y="14" fill="var(--ink-3)">REAR — coolant manifold</text>
-
-      <!-- chassis -->
-      <rect x="12" y="46" width="696" height="272" rx="8" fill="none" stroke="var(--line-strong)" stroke-width="1.5"/>
+      <g data-context>
+        <text x="12" y="14" fill="var(--ink-3)">REAR — coolant manifold</text>
+        <rect x="12" y="46" width="696" height="272" rx="8" fill="none" stroke="var(--line-strong)" stroke-width="1.5"/>
+      </g>
 
       <g data-part="uqd" style="cursor:pointer">
         {[0, 344].map((ox) => (
@@ -86,7 +86,9 @@ import SpecTable from '../components/SpecTable.astro';
         ))}
       </g>
 
-      <text x="12" y="338" fill="var(--ink-3)">FRONT — network, storage, service access</text>
+      <g data-context>
+        <text x="12" y="338" fill="var(--ink-3)">FRONT — network, storage, service access</text>
+      </g>
     </svg>
   </Widget>
 
@@ -200,6 +202,11 @@ import SpecTable from '../components/SpecTable.astro';
 
     if (panel && svg) {
       const groups = [...svg.querySelectorAll<SVGGElement>('[data-part]')];
+      // Context — the chassis outline and the REAR/FRONT labels — mutes along
+      // with the unselected parts, but is not selectable itself.
+      const context = [...svg.querySelectorAll<SVGGElement>('[data-context]')];
+      // Same mute level as the 3D rack, so the two figures read as one system.
+      const MUTED = '0.1';
       let pinned: string | null = null;
 
       const render = (key: string | null) => {
@@ -208,7 +215,9 @@ import SpecTable from '../components/SpecTable.astro';
           ? `<h5>${e[0]}${key === pinned ? ' <span class="count">pinned — click again to release</span>' : ''}</h5><p>${e[1]}</p>`
           : IDLE;
         // Dimming is the whole affordance: no label boxes over the drawing.
-        for (const g of groups) g.style.opacity = !key || g.dataset.part === key ? '1' : '0.18';
+        // The selected part is left alone; everything else mutes back.
+        for (const g of groups) g.style.opacity = !key || g.dataset.part === key ? '1' : MUTED;
+        for (const g of context) g.style.opacity = key ? MUTED : '1';
       };
 
       for (const g of groups) {
