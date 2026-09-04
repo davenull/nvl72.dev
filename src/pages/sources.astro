@@ -1,0 +1,127 @@
+---
+import Base from '../layouts/Base.astro';
+import Callout from '../components/Callout.astro';
+import { sources, kindLabel, type SourceKind } from '../data/sources';
+import { disputedSpecs, announcedSpecs } from '../data/specs';
+
+const order: SourceKind[] = ['primary', 'independent', 'vendor', 'standard', 'method'];
+const grouped = order.map((k) => ({ kind: k, items: sources.filter((s) => s.kind === k) }));
+const unverified = sources.filter((s) => !s.verified);
+---
+<Base
+  title="Sources & Method"
+  description="What is measured, what is announced, what the sources disagree about, and which citations still need their deep link confirmed."
+  kicker="Reference"
+  heading="Sources & Method"
+  slug="/sources"
+>
+  <div class="prose">
+    <p class="lede">
+      Three rules govern every number on this site: measured figures and announced figures are
+      never mixed; where sources disagree the range is shown rather than a pick; and citations that
+      have not been confirmed against the publisher are marked as such rather than quietly padding
+      the list.
+    </p>
+
+    <h2 id="disputed">Figures the sources disagree about</h2>
+
+    <p>
+      These appear throughout the site marked <span style="color:var(--amber)">±</span>, and
+      hovering one shows its range. Corroborate each against a primary datasheet before treating it
+      as settled.
+    </p>
+
+    <div class="part-list bleed">
+      {disputedSpecs.map((s) => (
+        <div data-group="power">
+          <h3>{s.label} <span class="count">{s.unit ? `${s.value} ${s.unit}` : s.value}</span></h3>
+          <p><strong style="color:var(--amber)">{s.range}</strong></p>
+          {s.note && <p>{s.note}</p>}
+        </div>
+      ))}
+    </div>
+
+    <h2 id="announced">Announced, not measured</h2>
+
+    <p>
+      Roadmap figures drawn from keynote material and supply-chain reporting. They are labelled at
+      every point of use and are never placed beside benchmark results as if they were the same
+      kind of claim.
+    </p>
+
+    <div class="part-list bleed">
+      {announcedSpecs.map((s) => (
+        <div data-group="cooling">
+          <h3>{s.label} <span class="count">{s.unit ? `${s.value} ${s.unit}` : s.value}</span></h3>
+          {s.note && <p>{s.note}</p>}
+        </div>
+      ))}
+    </div>
+
+    <h2 id="gaps">Known gaps</h2>
+
+    <Callout kind="caveat" tag="Open item">
+      <p>
+        <strong>Rack power smoothing under synchronised training loads.</strong> Large training
+        runs make a rack's draw behave like a square wave as thousands of GPUs enter and leave
+        collectives together, and the mitigations involve capacitance or energy storage at rack or
+        facility level. This is the thinnest-sourced topic in the research behind this site, and
+        <a href="/power-cooling">Chapter 6</a> deliberately says little about it. Writing it up
+        properly requires a dedicated NVIDIA or OCP power paper rather than inference from
+        secondary commentary.
+      </p>
+    </Callout>
+
+    <Callout kind="caveat" tag="Open item">
+      <p>
+        <strong>{unverified.length} citations still need their deep link confirmed.</strong> They
+        are marked "unconfirmed" in the list below. The claims they support come from the research
+        behind this site, but the exact document has not been re-checked against the publisher —
+        which should happen before this site is treated as a reference rather than an explainer.
+      </p>
+    </Callout>
+
+    <h2 id="all">All sources</h2>
+
+    {grouped.map(({ kind, items }) => items.length > 0 && (
+      <>
+        <h3>{kindLabel[kind]}</h3>
+        <div class="part-list bleed">
+          {items.map((s) => (
+            <div id={s.id} data-group={kind === 'primary' ? 'compute' : kind === 'independent' ? 'switch' : 'power'}>
+              <h3>
+                {s.url ? <a href={s.url} rel="noopener">{s.title}</a> : s.title}
+                <span class="count">{s.publisher}</span>
+                {!s.verified && <span class="count" style="color:var(--amber)">unconfirmed</span>}
+              </h3>
+              {s.note && <p>{s.note}</p>}
+            </div>
+          ))}
+        </div>
+      </>
+    ))}
+
+    <h2 id="method">Method</h2>
+
+    <p>
+      The fact base is a single module — every figure the site states is defined once, with its
+      unit, its sources, any disputed range, and whether it is announced. Pages reference figures
+      by identifier rather than typing numbers into prose, so a correction lands everywhere at once
+      and it is not possible for two chapters to disagree with each other.
+    </p>
+
+    <p>
+      The 3D rack is original geometry generated procedurally from those same dimensions. NVIDIA
+      publishes no CAD for this rack, so an original model was required regardless; generating it
+      from parameters rather than authoring a mesh keeps the dimensions next to the sourced figures
+      they come from, ships no asset bytes, and leaves every part individually addressable for the
+      exploded view. It is a schematic diagram in three dimensions, not a fabrication drawing.
+    </p>
+
+    <p>
+      No NVIDIA artwork, branding or CAD is reproduced anywhere on this site. Word marks are used
+      nominatively to describe the hardware. Mechanical proportions follow public teardown
+      photography and openly licensed Open Compute Project documentation.
+    </p>
+  </div>
+</Base>

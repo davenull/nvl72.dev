@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "nvl72-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "4399"],
+      "port": 4399,
+      "autoPort": false
+    },
+    {
+      "name": "nvl72-workers",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["wrangler", "dev", "--port", "8799"],
+      "port": 8799,
+      "autoPort": false
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+---
+/**
+ * Frame for an interactive figure. Everything a widget shows must also be
+ * stated in the surrounding prose — the widget is the illustration, never the
+ * only place a fact lives.
+ */
+interface Props { title: string; hint?: string; flush?: boolean; caption?: string }
+const { title, hint, flush = false, caption } = Astro.props;
+---
+<figure class="widget">
+  <div class="widget-head">
+    <h4>{title}</h4>
+    {hint && <span class="hint">{hint}</span>}
+  </div>
+  <div class:list={['widget-body', flush && 'flush']}><slot /></div>
+  <slot name="controls" />
+  <p class="nojs-note">This figure is interactive and needs JavaScript. The prose around it states every number it shows.</p>
+  {caption && <figcaption style="padding:0.75rem 1rem 0.9rem;margin:0;width:auto;border-top:1px solid var(--line)">{caption}</figcaption>}
+</figure>

@@ -1,0 +1,207 @@
+---
+import Base from '../layouts/Base.astro';
+import S from '../components/S.astro';
+import T from '../components/T.astro';
+import L from '../components/L.astro';
+import Cite from '../components/Cite.astro';
+import Callout from '../components/Callout.astro';
+import Deeper from '../components/Deeper.astro';
+import Widget from '../components/Widget.astro';
+import SpecTable from '../components/SpecTable.astro';
+---
+<Base
+  title="Inside a Compute Tray"
+  description="One 1U slice of a GB200 NVL72: two Grace CPUs, four Blackwell GPUs, NVLink-C2C at 900 GB/s, and the cold plates that make it possible."
+  kicker="Chapter 03"
+  heading="Inside a Compute Tray"
+  slug="/compute-tray"
+>
+  <div class="prose">
+    <p class="lede">
+      Eighteen of these make the rack. Each one is a 1U chassis holding two identical boards, and
+      each board is where the architecture's most consequential substitution happens: PCIe is gone,
+      and the CPU and GPU share memory.
+    </p>
+  </div>
+
+  <Widget
+    title="Compute tray, plan view"
+    hint="Hover or tap a component"
+    caption="Two GB200 boards per tray, airflow-free: every heat-producing package sits under a cold plate fed from the rear manifold. Drawn to approximate proportion, not to scale."
+  >
+    <svg class="diagram" viewBox="0 0 720 300" role="img" aria-label="Plan view of a compute tray showing two boards, each with one Grace CPU and two Blackwell GPUs, connected by NVLink-C2C, plus rear coolant couplings and front-panel networking." data-tray>
+      <!-- chassis -->
+      <rect x="10" y="14" width="700" height="272" rx="8" fill="none" stroke="var(--line-strong)" stroke-width="1.5"/>
+      <text x="20" y="38" class="lbl-lg">1U compute tray</text>
+      <text x="700" y="38" text-anchor="end">front ↓</text>
+
+      <g data-part="board" style="cursor:pointer">
+        <rect x="26" y="52" width="330" height="220" rx="6" fill="var(--panel-2)" stroke="var(--line-strong)"/>
+        <rect x="364" y="52" width="330" height="220" rx="6" fill="var(--panel-2)" stroke="var(--line-strong)"/>
+        <text x="30" y="70">GB200 board A</text>
+        <text x="368" y="70">GB200 board B</text>
+      </g>
+
+      {[0, 1].map((b) => {
+        const ox = b * 338;
+        return (
+          <g>
+            <g data-part="gpu" style="cursor:pointer">
+              <rect x={40 + ox} y={82} width="140" height="82" rx="5" fill="var(--gpu)" opacity="0.85"/>
+              <text x={110 + ox} y={118} text-anchor="middle" fill="#fff">Blackwell</text>
+              <text x={110 + ox} y={134} text-anchor="middle" fill="#fff">192 GB HBM3e</text>
+              <rect x={40 + ox} y={172} width="140" height="82" rx="5" fill="var(--gpu)" opacity="0.85"/>
+              <text x={110 + ox} y={208} text-anchor="middle" fill="#fff">Blackwell</text>
+              <text x={110 + ox} y={224} text-anchor="middle" fill="#fff">192 GB HBM3e</text>
+            </g>
+            <g data-part="c2c" style="cursor:pointer">
+              <line x1={180 + ox} y1={123} x2={222 + ox} y2={150} stroke="var(--copper)" stroke-width="4"/>
+              <line x1={180 + ox} y1={213} x2={222 + ox} y2={166} stroke="var(--copper)" stroke-width="4"/>
+              <text x={200 + ox} y={112} text-anchor="middle" fill="var(--copper)">900</text>
+              <text x={200 + ox} y={236} text-anchor="middle" fill="var(--copper)">GB/s</text>
+            </g>
+            <g data-part="cpu" style="cursor:pointer">
+              <rect x={222 + ox} y={124} width="120" height="66" rx="5" fill="var(--cpu)" opacity="0.85"/>
+              <text x={282 + ox} y={152} text-anchor="middle" fill="#fff">Grace</text>
+              <text x={282 + ox} y={168} text-anchor="middle" fill="#fff">72 Arm cores</text>
+            </g>
+          </g>
+        );
+      })}
+
+      <g data-part="uqd" style="cursor:pointer">
+        <circle cx="120" cy="30" r="9" fill="var(--coolant)"/>
+        <circle cx="600" cy="30" r="9" fill="var(--coolant)"/>
+        <text x="140" y="34" fill="var(--coolant)">rear UQD coolant couplings</text>
+      </g>
+    </svg>
+  </Widget>
+
+  <div class="prose">
+    <div class="part-panel" data-tray-panel aria-live="polite" style="border:1px solid var(--line);border-radius:var(--radius);margin-bottom:2rem">
+      <p class="idle">Pick a component in the diagram above.</p>
+    </div>
+
+    <h2 id="board">The board is the real unit</h2>
+
+    <L at={1}>
+      <p>
+        Each tray holds two boards, and each board holds one CPU and two GPUs. Multiply out:
+        two boards × (1 + 2) chips, eighteen trays, and you get <S id="cpus" /> Grace CPUs and
+        <S id="gpus" /> Blackwell GPUs in the rack.
+      </p>
+      <p>
+        In an ordinary computer, the CPU and the graphics card talk over a slot on the
+        motherboard, and they each keep their own memory. Sending work to the GPU means copying
+        data across. Here, the CPU and its two GPUs are joined by a much faster link and share one
+        pool of memory, so there is no copy — they can both simply use the same data where it lies.
+      </p>
+    </L>
+
+    <L min={2}>
+      <p>
+        A GB200 "Bianca" board is one Grace CPU and two Blackwell GPUs. Two boards per tray gives
+        the tray 2 CPUs and 4 GPUs; eighteen trays give the rack <S id="cpus" /> and
+        <S id="gpus" bare /> respectively, arranged as <S id="superchips" /> GB200
+        Superchips.<Cite ids={['nv-gb200', 'sth-teardown']} />
+      </p>
+      <p>
+        The link that matters is <T id="nvlink-c2c">NVLink-C2C</T> at <S id="c2c" /> — roughly
+        seven times PCIe Gen5 — and, more importantly, it is coherent. The Grace CPU's
+        <S id="grace-mem" /> of LPDDR5X and the GPUs' HBM3e sit in one address space with
+        hardware-maintained coherence. A GPU kernel can dereference a pointer into host memory;
+        the host can touch GPU-resident data without an explicit transfer.
+      </p>
+      <p>
+        Practically, this is what removes the staging step that dominates so much accelerator code:
+        no pinned host buffers, no explicit <code>cudaMemcpy</code> on the critical path, no
+        double-buffering to hide a PCIe hop. For workloads that spill past HBM — long-context KV
+        caches, large embedding tables, optimiser state — LPDDR5X becomes a slower tier of the same
+        memory rather than a different machine's memory.
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        Two details in this tray are easy to skim past and both have operational consequences.
+      </p>
+      <p>
+        First, the Grace part in GB200 is not the same configuration as the standalone Grace
+        Superchip. NVIDIA's standalone datasheet quotes 512 GB of LPDDR5X at 546 GB/s; the GB200
+        variant is configured differently and uses a reduced 1 MB of L2 per core.<Cite ids="nv-grace" />
+        Capacity-planning from the standalone datasheet will overstate what is available per board.
+      </p>
+      <p>
+        Second, the tray has no fans and no air path worth speaking of. Every significant package is
+        under a cold plate, and the tray's thermal design point — roughly
+        <S id="superchip-power" /> per Superchip, so around 5.4 kW per tray — is only removable by
+        liquid. There is no degraded air-cooled mode. A coolant fault is not a performance event,
+        it is an immediate thermal event, which is why the <T id="cdu">CDU</T> and the facility loop
+        get the redundancy budget that fans used to get.
+      </p>
+    </L>
+
+    <Callout kind="key">
+      <p>
+        The substitution to remember: an x86 host over PCIe becomes an Arm host over a coherent
+        900 GB/s link. That is what makes the CPU's memory usable as a real tier instead of a
+        staging area — and it is the reason the rack's <S id="mem-total" /> of unified memory is
+        quoted as one number.
+      </p>
+    </Callout>
+
+    <h2 id="numbers">Per-tray and per-board figures</h2>
+
+    <SpecTable
+      caption="Board and tray"
+      ids={['c2c', 'grace-cores', 'grace-mem', 'grace-bw', 'scf', 'superchip-power', 'hbm-per-gpu', 'hbm-bw']}
+    />
+
+    <Deeper title="What blind-mate coupling actually buys you">
+      <p>
+        Each tray's coolant connections are <T id="uqd">UQD</T> quick disconnects at the rear: dripless,
+        self-sealing, and mated by the act of sliding the tray into its rails. A technician removes a
+        tray from the front without touching a hose, and the loop stays pressurised while they do it.
+      </p>
+      <p>
+        This is the difference between liquid cooling as a science project and liquid cooling as
+        something a data-centre operations team can run at scale. The serviceability model is
+        unchanged from air-cooled racks — pull the tray, swap it, slide it back — which is
+        precisely the point.
+      </p>
+    </Deeper>
+  </div>
+
+  <script>
+    const INFO: Record<string, [string, string]> = {
+      board: ['GB200 board', 'One Grace CPU and two Blackwell GPUs on a single board. Two boards per tray, 36 boards per rack — NVIDIA counts these as 36 GB200 Superchips.'],
+      gpu: ['Blackwell GPU', 'Two reticle-limited dies joined by a 10 TB/s NV-HBI link and presented as one coherent GPU. 192 GB of HBM3e at 8 TB/s, about 20 PFLOPS of sparse FP4.'],
+      cpu: ['Grace CPU', '72 Arm Neoverse V2 cores with up to 480 GB of LPDDR5X. In GB200 it uses a reduced 1 MB L2 per core — the standalone Grace Superchip datasheet describes a different configuration.'],
+      c2c: ['NVLink-C2C', '900 GB/s of coherent bandwidth between the Grace CPU and each Blackwell GPU, roughly seven times PCIe Gen5. Coherent means shared addresses, not faster copies.'],
+      uqd: ['Coolant couplings', 'Blind-mate universal quick disconnects at the rear. They seal on removal, so a tray can be pulled while the rack is running and the loop stays pressurised.'],
+    };
+    const IDLE = '<p class="idle">Pick a component in the diagram above.</p>';
+    const panel = document.querySelector<HTMLElement>('[data-tray-panel]');
+    const svg = document.querySelector<SVGElement>('[data-tray]');
+
+    if (panel && svg) {
+      const show = (key: string | null) => {
+        const e = key ? INFO[key] : undefined;
+        panel.innerHTML = e ? `<h5>${e[0]}</h5><p>${e[1]}</p>` : IDLE;
+        svg.querySelectorAll<SVGGElement>('[data-part]').forEach((g) => {
+          g.style.opacity = !key || g.dataset.part === key ? '1' : '0.3';
+        });
+      };
+      svg.querySelectorAll<SVGGElement>('[data-part]').forEach((g) => {
+        const key = g.dataset.part!;
+        g.setAttribute('tabindex', '0');
+        g.setAttribute('role', 'button');
+        g.setAttribute('aria-label', INFO[key]?.[0] ?? key);
+        g.addEventListener('mouseenter', () => show(key));
+        g.addEventListener('focus', () => show(key));
+        g.addEventListener('click', () => show(key));
+      });
+      svg.addEventListener('mouseleave', () => show(null));
+    }
+  </script>
+</Base>

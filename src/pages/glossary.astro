@@ -1,0 +1,36 @@
+---
+import Base from '../layouts/Base.astro';
+import { allTerms, glossary } from '../data/glossary';
+---
+<Base
+  title="Glossary"
+  description="Every term used on nvl72.dev, defined once: HBM3e, NVLink, NVSwitch, SHARP, prefill, decode, roofline, busbar, CDU, UQD and the rest."
+  kicker="Reference"
+  heading="Glossary"
+  slug="/glossary"
+>
+  <div class="prose">
+    <p class="lede">
+      Terms are defined here once and hover-linked everywhere else. Definitions are written to be
+      useful rather than complete — where a term hides a real design decision, the second paragraph
+      says what it is.
+    </p>
+
+    <div class="part-list bleed" style="margin-top:2.5rem">
+      {allTerms.map((e) => (
+        <div id={e.id}>
+          <h3>{e.term}</h3>
+          <p><strong>{e.short}</strong></p>
+          {e.long && <p>{e.long}</p>}
+          {e.see && e.see.length > 0 && (
+            <p style="font-size:0.8125rem;color:var(--ink-3)">
+              See also {e.see.map((s, i) => (
+                <>{i > 0 && ', '}<a href={`#${s}`}>{glossary.get(s)?.term ?? s}</a></>
+              ))}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+</Base>

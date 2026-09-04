@@ -1,0 +1,24 @@
+---
+import { spec } from '../data/specs';
+interface Props { ids: string[]; caption?: string }
+const { ids, caption } = Astro.props;
+const rows = ids.map(spec);
+---
+<div class="spec-table">
+  <table>
+    {caption && <caption>{caption}</caption>}
+    <tbody>
+      {rows.map((s) => (
+        <tr>
+          <th scope="row">{s.label}</th>
+          <td>{s.unit ? `${s.value} ${s.unit}` : s.value}</td>
+          <td class="note">
+            {s.range && <><span style="color:var(--amber)">± sources disagree: {s.range}. </span></>}
+            {s.announced && <><span style="color:var(--amber)">Announced, not measured. </span></>}
+            {s.note}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>

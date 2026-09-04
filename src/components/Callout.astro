@@ -1,0 +1,9 @@
+---
+interface Props { kind?: 'key' | 'caveat' | 'myth' | 'deeper'; tag?: string }
+const { kind = 'key', tag } = Astro.props;
+const fallback = { key: 'The point', caveat: 'Caveat', myth: 'Common misconception', deeper: 'Aside' }[kind];
+---
+<aside class={`callout is-${kind}`}>
+  <span class="tag">{tag ?? fallback}</span>
+  <slot />
+</aside>

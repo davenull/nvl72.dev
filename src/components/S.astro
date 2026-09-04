@@ -1,0 +1,17 @@
+---
+import { spec } from '../data/specs';
+import { sourceById } from '../data/sources';
+interface Props { id: string; bare?: boolean }
+const { id, bare = false } = Astro.props;
+const s = spec(id);
+const text = s.unit && !bare ? `${s.value} ${s.unit}` : s.value;
+const cites = s.sources.map((sid) => sourceById.get(sid)?.publisher).filter(Boolean);
+---
+<span class:list={['spec', s.disputed && 'is-disputed']} tabindex="0"
+      >{text}<span class="card"
+    ><span class="lbl">{s.label}</span
+    >{s.range && <span class="rng">Sources disagree: {s.range}</span>}
+    {s.announced && <span class="rng">Announced, not measured</span>}
+    {s.note}
+    <span class="src">{cites.join(' · ')}</span>
+  </span></span>

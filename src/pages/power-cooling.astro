@@ -1,0 +1,261 @@
+---
+import Base from '../layouts/Base.astro';
+import S from '../components/S.astro';
+import T from '../components/T.astro';
+import L from '../components/L.astro';
+import Cite from '../components/Cite.astro';
+import Callout from '../components/Callout.astro';
+import Deeper from '../components/Deeper.astro';
+import Widget from '../components/Widget.astro';
+import SpecTable from '../components/SpecTable.astro';
+---
+<Base
+  title="Power & Cooling"
+  description="120 kW in one rack footprint: a busbar instead of power supplies, direct-to-chip water instead of air, and why the published coolant flow figures disagree."
+  kicker="Chapter 06"
+  heading="Power & Cooling"
+  slug="/power-cooling"
+>
+  <div class="prose">
+    <p class="lede">
+      <S id="rack-power" /> in roughly three quarters of a square metre. The worldwide mean rack
+      density is <S id="mean-rack" />. Everything in this chapter follows from that ratio.
+    </p>
+
+    <h2 id="density">Sixteen racks in one</h2>
+
+    <Widget title="Rack power density, to scale" hint="Uptime Institute 2025 mean vs NVL72">
+      <svg class="diagram" viewBox="0 0 720 170" role="img"
+        aria-label="Bar chart: average data centre rack 7.6 kW, GB200 NVL72 about 120 kW, next-generation racks an announced 240 kW.">
+        <g>
+          <text x="176" y="30" text-anchor="end">Worldwide mean rack</text>
+          <rect x="184" y="17" width="22" height="18" rx="2" fill="var(--line-strong)"/>
+          <text x="214" y="30">7.6 kW</text>
+
+          <text x="176" y="76" text-anchor="end">GB200 NVL72</text>
+          <rect x="184" y="63" width="348" height="18" rx="2" fill="var(--power)"/>
+          <text x="540" y="76">~120 kW</text>
+
+          <text x="176" y="122" text-anchor="end">Next generation</text>
+          <rect x="184" y="109" width="500" height="18" rx="2" fill="var(--line-strong)" opacity="0.5"/>
+          <text x="184" y="147" fill="var(--amber)">240 kW — announced, not measured (Schneider Electric)</text>
+        </g>
+      </svg>
+    </Widget>
+
+    <L at={1}>
+      <p>
+        A normal computer rack in a data centre uses about as much electricity as a few homes.
+        This one uses about as much as a small apartment block — in the same floor space.
+      </p>
+      <p>
+        Two things follow. The electricity has to arrive differently: instead of each machine
+        having its own power supply, the whole rack is fed by a single thick copper bar and every
+        tray taps into it. And the heat has to leave differently: there is far too much of it for
+        fans and air, so cold water is piped directly onto the chips.
+      </p>
+    </L>
+
+    <L min={2}>
+      <p>
+        On the electrical side, per-server PSUs are gone. Rack-level power shelves convert facility
+        input once and drive a shared <T id="busbar">busbar</T> that runs the height of the rack;
+        trays draw from it directly.<Cite ids="sth-teardown" /> Converting once at rack scale beats
+        converting fifty-four times at server scale on efficiency, and it reclaims the volume that
+        redundant supplies would have occupied — volume this design needs for cold plates.
+      </p>
+      <p>
+        On the thermal side there is no air-cooled fallback. Direct-to-chip cold plates cover every
+        significant package, fed from a rear manifold through blind-mate
+        <T id="uqd">quick disconnects</T>, with a <T id="cdu">CDU</T> isolating the rack loop from
+        facility water. Inlet is deliberately warm — <S id="inlet-temp" /> per NVIDIA's ACS
+        reference design, with QCT specifying 45 °C maximum inlet and 65 °C maximum
+        return.<Cite ids="qct" />
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        Warm-water operation is the entire economic argument for liquid at this density. If the
+        inlet can be 45 °C, then for most of the year in most climates the facility side needs only
+        dry coolers and pumps — no compressor, no chiller plant. <T id="pue">PUE</T> approaches the
+        pumping overhead rather than the refrigeration overhead. The same 45 °C return water is also
+        hot enough to be worth something to a district-heating loop, which is why heat reuse appears
+        in operator planning around these deployments rather than as an afterthought.
+      </p>
+      <p>
+        The counterweight is that thermal margin is now a facility property, not a rack property.
+        A tray has no fans to spin up and no throttle-and-survive mode that removes 5 kW into
+        still air. Loss of flow is measured in seconds to thermal event, which moves CDU and pump
+        redundancy from a nice-to-have into the same tier as power redundancy.
+      </p>
+    </L>
+
+    <h2 id="loop">The loop, and a number that does not add up</h2>
+
+    <p>
+      The research behind this site flagged coolant flow as a figure the sources disagree
+      about: 2–3 L/min per module, 30–40 L/min per rack in NVIDIA's ACS reference, and up to about
+      130 L/min per rack from QCT. Those are not small differences. Rather than pick one, it is
+      more instructive to check them against physics.
+    </p>
+  </div>
+
+  <Widget
+    title="Coolant loop"
+    hint="Drag flow and inlet temperature"
+    caption="Return temperature from ΔT = Q ÷ (ṁ · c_p), with Q = 120 kW, water at 4.18 kJ/kg·K. The point of the widget is the sanity check: at 30–40 L/min a 120 kW rack would need a ΔT of 40 K or more and would blow straight past the 65 °C return limit — so those published figures cannot be describing a full-load rack loop."
+  >
+    <div data-cool>
+      <svg class="diagram" viewBox="0 0 720 240" role="img"
+        aria-label="Schematic coolant loop: facility water enters the CDU, the CDU feeds a supply manifold, cold plates on the trays absorb heat, and warm water returns through the CDU heat exchanger.">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--ink-3)"/>
+          </marker>
+        </defs>
+
+        <rect x="20" y="90" width="110" height="60" rx="6" fill="none" stroke="var(--line-strong)"/>
+        <text x="75" y="115" text-anchor="middle">Facility</text>
+        <text x="75" y="131" text-anchor="middle">water</text>
+
+        <rect x="170" y="80" width="90" height="80" rx="6" fill="var(--panel-2)" stroke="var(--coolant)"/>
+        <text x="215" y="115" text-anchor="middle" class="lbl-lg">CDU</text>
+        <text x="215" y="132" text-anchor="middle">heat exch.</text>
+
+        <rect x="330" y="30" width="340" height="180" rx="6" fill="none" stroke="var(--line-strong)"/>
+        <text x="340" y="24">rack loop — 18 compute trays</text>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <g>
+            <rect x={350} y={48 + i * 32} width="300" height="20" rx="3" fill="var(--panel-2)" stroke="var(--line)"/>
+            <rect x={356} y={52 + i * 32} width="52" height="12" rx="2" fill="var(--gpu)" opacity="0.7"/>
+            <rect x={414} y={52 + i * 32} width="52" height="12" rx="2" fill="var(--gpu)" opacity="0.7"/>
+            <rect x={472} y={52 + i * 32} width="44" height="12" rx="2" fill="var(--cpu)" opacity="0.7"/>
+          </g>
+        ))}
+        <text x="530" y="200" fill="var(--ink-3)">cold plates</text>
+
+        <path d="M130 120 L170 120" stroke="var(--ink-3)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <path d="M260 100 L310 100 L310 44 L350 44" fill="none" stroke="var(--coolant)" stroke-width="3"
+              stroke-dasharray="7 5" data-flow-supply/>
+        <path d="M650 196 L690 196 L690 224 L300 224 L300 140 L260 140" fill="none" stroke="var(--danger)"
+              stroke-width="3" stroke-dasharray="7 5" data-flow-return/>
+        <text x="316" y="40" fill="var(--coolant)" data-out="supply-lbl">supply 32 °C</text>
+        <text x="690" y="219" text-anchor="end" fill="var(--danger)" data-out="return-lbl">return 45 °C</text>
+      </svg>
+
+      <dl class="readout" style="margin-top:0.75rem">
+        <div><dt>Heat removed</dt><dd>120 kW</dd></div>
+        <div><dt>Temperature rise</dt><dd data-out="dt">13.2 K</dd></div>
+        <div><dt>Return temperature</dt><dd data-out="ret">45.2 °C</dd></div>
+        <div><dt>Within 65 °C limit</dt><dd data-out="ok">yes</dd></div>
+      </dl>
+      <p data-out="verdict" style="margin:0.9rem 0 0;font-size:0.875rem;color:var(--ink-2)"></p>
+    </div>
+
+    <div slot="controls" class="controls-row">
+      <div class="ctl">
+        <label for="flow">Rack flow rate<output data-out="flow-lbl">130 L/min</output></label>
+        <input type="range" id="flow" data-flow min="20" max="160" value="130" step="1" />
+      </div>
+      <div class="ctl">
+        <label for="inlet">Inlet temperature<output data-out="inlet-lbl">32 °C</output></label>
+        <input type="range" id="inlet" data-inlet min="18" max="45" value="32" step="1" />
+      </div>
+    </div>
+  </Widget>
+
+  <div class="prose">
+    <Callout kind="caveat">
+      <p>
+        Reconciling the flow figures: 2–3 L/min is a <em>per-module</em> number and 30–40 L/min is
+        quoted for a reference design whose assumed heat load and ΔT are not the same as a fully
+        loaded 120 kW rack. Only the ~130 L/min figure is consistent with removing 120 kW inside a
+        65 °C return limit. Always ask what a flow number is per, and at what load — the widget
+        above is the check.
+      </p>
+    </Callout>
+
+    <h2 id="numbers">Power and thermal figures</h2>
+
+    <SpecTable
+      caption="Power and cooling"
+      ids={['rack-power', 'per-gpu-power', 'mean-rack', 'inlet-temp', 'flow-rate', 'retrofit-cost', 'rack-weight']}
+    />
+
+    <Deeper title="The load-swing problem, and why this site says little about it">
+      <p>
+        Synchronised training loads make a rack like this behave less like a steady 120 kW draw and
+        more like a square wave: thousands of GPUs enter and leave a collective together, and the
+        facility sees the step. At sufficient scale this is a grid-interaction problem, and the
+        mitigations discussed publicly involve capacitance or energy storage at rack or facility
+        level.
+      </p>
+      <p>
+        This is the thinnest-sourced topic in the research behind this site, and it is not written
+        up here in any detail on purpose. Treating it properly needs a dedicated primary source —
+        an NVIDIA or OCP power paper — rather than inference from secondary commentary. It is
+        listed as an open item on <a href="/sources#gaps">the sources page</a>.
+      </p>
+    </Deeper>
+  </div>
+
+  <script>
+    const cool = document.querySelector<HTMLElement>('[data-cool]');
+    if (cool) {
+      const fig = cool.closest('figure')!;
+      const Q = 120_000;      // W
+      const CP = 4180;        // J/kg·K
+      const RHO = 1000;       // kg/m³
+      const RETURN_LIMIT = 65;
+
+      const flow = fig.querySelector<HTMLInputElement>('[data-flow]')!;
+      const inlet = fig.querySelector<HTMLInputElement>('[data-inlet]')!;
+      const out = (k: string) => fig.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // Dashed-line flow animation, skipped entirely under reduced motion.
+      if (!reduced) {
+        let off = 0;
+        const supply = fig.querySelector<SVGPathElement>('[data-flow-supply]');
+        const ret = fig.querySelector<SVGPathElement>('[data-flow-return]');
+        const step = () => {
+          off -= 0.6;
+          supply?.setAttribute('stroke-dashoffset', String(off));
+          ret?.setAttribute('stroke-dashoffset', String(off));
+          requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }
+
+      const render = () => {
+        const lpm = Number(flow.value);
+        const tIn = Number(inlet.value);
+        const mdot = (lpm / 60000) * RHO;          // kg/s
+        const dT = Q / (mdot * CP);
+        const tOut = tIn + dT;
+        const ok = tOut <= RETURN_LIMIT;
+
+        out('flow-lbl').textContent = lpm + ' L/min';
+        out('inlet-lbl').textContent = tIn + ' °C';
+        out('dt').textContent = dT.toFixed(1) + ' K';
+        out('ret').textContent = tOut.toFixed(1) + ' °C';
+        out('ok').textContent = ok ? 'yes' : 'no';
+        out('ok').style.color = ok ? 'var(--ink)' : 'var(--danger)';
+        out('supply-lbl').textContent = `supply ${tIn} °C`;
+        out('return-lbl').textContent = `return ${tOut.toFixed(0)} °C`;
+
+        const free = tIn >= 30;
+        out('verdict').innerHTML = ok
+          ? `A ${dT.toFixed(0)} K rise leaves the return at ${tOut.toFixed(0)} °C, inside the 65 °C limit.` +
+            (free
+              ? ' At this inlet temperature the facility side can usually run on dry coolers alone for much of the year — no compressor, and a PUE dominated by pumping rather than refrigeration.'
+              : ' A colder inlet than this needs mechanical cooling to produce, which is the overhead warm-water operation exists to avoid.')
+          : `<strong style="color:var(--danger)">Return exceeds the 65 °C limit.</strong> Removing 120 kW at ${lpm} L/min demands a ${dT.toFixed(0)} K rise — which is why the 30–40 L/min figures in circulation cannot be describing a fully loaded rack loop.`;
+      };
+      flow.addEventListener('input', render);
+      inlet.addEventListener('input', render);
+      render();
+    }
+  </script>
+</Base>

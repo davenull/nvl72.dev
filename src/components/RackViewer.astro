@@ -1,0 +1,140 @@
+---
+import { partInfo } from '../scripts/rack-parts';
+
+interface Props {
+  /** Show the explode slider, guided tour and part panel. */
+  full?: boolean;
+  autoRotate?: boolean;
+  caption?: string;
+}
+const { full = true, autoRotate = false, caption } = Astro.props;
+const tourStops = ['compute', 'switch', 'spine', 'busbar', 'manifold', 'cdu'];
+const labels: Record<string, string> = {
+  compute: 'Compute trays', switch: 'NVSwitch trays', spine: 'NVLink spine',
+  busbar: 'Busbar', manifold: 'Coolant manifold', cdu: 'CDU',
+};
+---
+<figure class="widget" data-rack-widget data-auto-rotate={autoRotate ? '1' : '0'}>
+  <div class="widget-head">
+    <h4>GB200 NVL72 — schematic rack</h4>
+    <span class="hint">Drag to rotate · scroll to zoom · click a part</span>
+  </div>
+
+  <div class="widget-body flush">
+    <div class="rack-stage">
+      <canvas data-rack></canvas>
+      <div class="hotspots" data-hotspots></div>
+      <p class="rack-badge">72 GPUs · 36 CPUs · 27 trays<br />~2.2 m × 0.6 m × 1.2 m · ~1.36 t</p>
+    </div>
+  </div>
+
+  {full && (
+    <>
+      <div class="controls-row">
+        <div class="ctl" style="max-width:22rem">
+          <label>Explode<output data-explode-out>0%</output></label>
+          <input type="range" data-explode min="0" max="100" value="0" step="1" aria-label="Explode the rack" />
+        </div>
+        <div class="tour" data-tour>
+          {tourStops.map((id) => (
+            <button type="button" data-stop={id} aria-pressed="false">{labels[id]}</button>
+          ))}
+          <button type="button" data-reset>Reset</button>
+        </div>
+      </div>
+      <div class="part-panel" data-part-panel aria-live="polite">
+        <p class="idle">Click a part in the model — or a name above — to read what it does. Everything here is also written out below the figure.</p>
+      </div>
+    </>
+  )}
+
+  <p class="nojs-note">
+    The 3D model needs JavaScript and WebGL. The full parts list below describes every component it shows.
+  </p>
+  {caption && <figcaption style="padding:0.75rem 1rem 0.9rem;margin:0;width:auto;border-top:1px solid var(--line)">{caption}</figcaption>}
+  <script type="application/json" data-parts set:html={JSON.stringify(partInfo)} />
+</figure>
+
+<script>
+  import type { RackHandle } from '../scripts/rack';
+
+  const IDLE = '<p class="idle">Click a part in the model — or a name above — to read what it does. Everything here is also written out below the figure.</p>';
+
+  document.querySelectorAll<HTMLElement>('[data-rack-widget]').forEach((widget) => {
+    const canvas = widget.querySelector<HTMLCanvasElement>('[data-rack]')!;
+    const hotspots = widget.querySelector<HTMLElement>('[data-hotspots]')!;
+    const slider = widget.querySelector<HTMLInputElement>('[data-explode]');
+    const out = widget.querySelector<HTMLOutputElement>('[data-explode-out]');
+    const panel = widget.querySelector<HTMLElement>('[data-part-panel]');
+    const tour = widget.querySelector<HTMLElement>('[data-tour]');
+    const parts = JSON.parse(widget.querySelector('[data-parts]')!.textContent!) as {
+      id: string; label: string; count: string; summary: string; detail: string;
+    }[];
+    const byId = new Map(parts.map((p) => [p.id, p]));
+
+    const describe = (id: string | null) => {
+      if (!panel) return;
+      const p = id ? byId.get(id) : undefined;
+      panel.innerHTML = p
+        ? `<h5>${p.label} <span class="count">${p.count}</span></h5><p>${p.summary}</p><p>${p.detail}</p>`
+        : IDLE;
+    };
+    const setPressed = (id: string | null) =>
+      tour?.querySelectorAll<HTMLButtonElement>('[data-stop]').forEach((b) =>
+        b.setAttribute('aria-pressed', String(b.dataset.stop === id)));
+    const setSlider = (pct: number) => {
+      if (slider) slider.value = String(pct);
+      if (out) out.textContent = pct + '%';
+    };
+
+    let handle: RackHandle | null = null;
+    let started = false;
+
+    async function start() {
+      if (started) return;
+      started = true;
+      const { mountRack } = await import('../scripts/rack');
+      handle = mountRack(canvas, {
+        labels: hotspots,
+        autoRotate: widget.dataset.autoRotate === '1',
+        onSelect: (id) => { describe(id); setPressed(id); },
+      });
+
+      if (!handle) {
+        const stage = widget.querySelector('.rack-stage')!;
+        stage.innerHTML =
+          '<p style="padding:2rem;text-align:center;color:var(--ink-3);font-size:0.875rem">' +
+          'This browser could not start WebGL. The parts list below covers everything the model shows.</p>';
+        return;
+      }
+
+      slider?.addEventListener('input', () => {
+        const v = Number(slider.value);
+        if (out) out.textContent = v + '%';
+        handle!.setExplode(v / 100);
+      });
+
+      tour?.querySelectorAll<HTMLButtonElement>('[data-stop]').forEach((b) => {
+        b.addEventListener('click', () => {
+          const on = b.getAttribute('aria-pressed') === 'true';
+          const id = on ? null : b.dataset.stop!;
+          handle!.focus(id, { explode: id ? 0.78 : 0.2 });
+          setSlider(id ? 78 : 20);
+          describe(id);
+          setPressed(id);
+        });
+      });
+      tour?.querySelector('[data-reset]')?.addEventListener('click', () => {
+        handle!.resetView();
+        setSlider(0);
+        describe(null);
+        setPressed(null);
+      });
+    }
+
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { io.disconnect(); start(); }
+    }, { rootMargin: '300px' });
+    io.observe(canvas);
+  });
+</script>

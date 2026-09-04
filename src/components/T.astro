@@ -1,0 +1,7 @@
+---
+import { term } from '../data/glossary';
+interface Props { id: string }
+const { id } = Astro.props;
+const e = term(id);
+---
+<span class="term" tabindex="0" role="note" aria-label={`${e.term}: ${e.short}`}><slot>{e.term}</slot><span class="card" aria-hidden="true"><b>{e.term}</b>{e.short}</span></span>

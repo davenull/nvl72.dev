@@ -1,0 +1,11 @@
+---
+import { sourceById } from '../data/sources';
+interface Props { ids: string | string[] }
+const raw = Astro.props.ids;
+const ids = Array.isArray(raw) ? raw : [raw];
+const items = ids.map((id) => ({ id, s: sourceById.get(id) }));
+---
+<sup>{items.map(({ id, s }, i) => (
+  <>{i > 0 && <span class="cite">,</span>}<a class="cite" href={`/sources#${id}`}
+     title={s ? `${s.publisher} — ${s.title}` : id}>{s?.publisher ?? id}</a></>
+))}</sup>

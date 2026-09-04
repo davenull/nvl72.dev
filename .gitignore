@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.astro/
+.wrangler/
+.DS_Store
+*.log
+.dev.vars
+
+# Credentials are read from the environment at deploy time, never from the repo.
+.cloudflare*
+cf.env

@@ -1,0 +1,197 @@
+---
+import Base from '../layouts/Base.astro';
+import S from '../components/S.astro';
+import T from '../components/T.astro';
+import L from '../components/L.astro';
+import Cite from '../components/Cite.astro';
+import Callout from '../components/Callout.astro';
+import Deeper from '../components/Deeper.astro';
+import Widget from '../components/Widget.astro';
+import SpecTable from '../components/SpecTable.astro';
+---
+<Base
+  title="The Blackwell GPU"
+  description="Two reticle-limited dies joined at 10 TB/s, 192 GB of HBM3e, and what dropping to FP4 actually buys — in throughput and in parameters that fit."
+  kicker="Chapter 04"
+  heading="The Blackwell GPU"
+  slug="/blackwell"
+>
+  <div class="prose">
+    <p class="lede">
+      A single Blackwell package is already at the limit of what a lithography machine can print in
+      one exposure — twice over. Understanding why the die is doubled, and why the number format
+      keeps shrinking, explains most of what the rack is for.
+    </p>
+
+    <h2 id="two-dies">Two dies, one GPU</h2>
+
+    <L at={1}>
+      <p>
+        Chips are printed by projecting a pattern onto silicon, and there is a hard limit to how
+        large a single pattern can be — the "reticle limit". Blackwell hit it. Rather than
+        accept a smaller chip, NVIDIA printed two of the largest possible dies and joined them
+        edge to edge with a link so fast that software cannot tell them apart.
+      </p>
+      <p>
+        The result behaves as one GPU with <S id="transistors" /> transistors and
+        <S id="hbm-per-gpu" /> of very fast memory attached. You do not schedule work onto
+        "die 0" or "die 1"; you just see one device.
+      </p>
+    </L>
+
+    <L min={2}>
+      <p>
+        The two dies are TSMC <S id="process" bare />, <S id="transistors" /> in total, joined by
+        <T id="nvlink">NV-HBI</T> at <S id="nv-hbi" />. That bandwidth is the whole trick: it is
+        high enough, and low enough latency, that the pair present as a single cache-coherent
+        device to CUDA. There is no NUMA domain to schedule around, no explicit die affinity, no
+        partitioning of the L2 — <S id="l2" /> of it is shared.<Cite ids="nv-blackwell" />
+      </p>
+      <p>
+        Attached is <S id="hbm-per-gpu" /> of <T id="hbm3e">HBM3e</T> at <S id="hbm-bw" />, of
+        which 180 GB is usable after ECC. Hold that bandwidth number next to the FP4 figure of
+        <S id="gpu-fp4" /> and the tension in the design is immediately visible: about 20,000
+        TFLOPs against 8 TB/s is an arithmetic intensity requirement of roughly 2,500 FLOPs per
+        byte before the tensor cores are the limit. Very few real kernels are anywhere near that.
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        Two consequences worth being precise about.
+      </p>
+      <p>
+        The NV-HBI link is a <em>bandwidth</em> solution to a reticle problem, not a latency-free
+        one. Coherence across the die boundary is maintained in hardware, but a cache line sourced
+        from the far die still costs more than a local one; kernels with pathological cross-die
+        access patterns will see it. In practice the scheduler's locality heuristics absorb this,
+        and it is not exposed as a tunable — which is a deliberate choice to keep the programming
+        model simple, and a real constraint if you were hoping to control it.
+      </p>
+      <p>
+        The 192 GB / 180 GB distinction accounts for a chunk of the disagreement over the rack's
+        pooled HBM total: 72 × 192 GB is 13.82 TB physical, 72 × 180 GB is 12.96 TB usable, and
+        published figures land anywhere in between depending on which the source meant and how it
+        rounded. The site shows <S id="hbm-total" /> with the range attached rather than picking one.
+      </p>
+    </L>
+
+    <h2 id="precision">What shrinking the number format buys</h2>
+
+    <p>
+      Halving the bits per value does two things at once, and the second matters more than the
+      first: it doubles arithmetic throughput, and it halves the bytes each parameter occupies in
+      memory and on every wire it crosses.
+    </p>
+  </div>
+
+  <Widget
+    title="Precision ladder"
+    hint="Pick a format"
+    caption="Throughput figures are the Tensor Core numbers NVIDIA publishes for the full rack; the FP4 headline is a sparse figure, so dense FP4 is half of it. Capacity figures are plain arithmetic over the rack's pooled HBM3e and assume weights only — a real deployment also has to hold activations and the KV cache."
+  >
+    <div data-prec>
+      <div class="seg" role="group" aria-label="Numeric format" style="margin-bottom:1rem">
+        <button type="button" data-fmt="fp4" aria-pressed="true">FP4</button>
+        <button type="button" data-fmt="fp8" aria-pressed="false">FP8</button>
+        <button type="button" data-fmt="bf16" aria-pressed="false">BF16</button>
+        <button type="button" data-fmt="fp32" aria-pressed="false">FP32</button>
+      </div>
+      <dl class="readout">
+        <div><dt>Bytes per parameter</dt><dd data-out="bytes">0.5</dd></div>
+        <div><dt>Params in one GPU (180 GB)</dt><dd data-out="pergpu">360 B</dd></div>
+        <div><dt>Params in the rack's HBM</dt><dd data-out="perrack">27 T</dd></div>
+        <div><dt>Rack Tensor Core throughput</dt><dd data-out="flops">1,440 PFLOPS</dd></div>
+        <div><dt>Relative to FP32</dt><dd data-out="rel">8×</dd></div>
+      </dl>
+      <p data-out="note" style="margin:1rem 0 0;font-size:0.875rem;color:var(--ink-2)"></p>
+    </div>
+  </Widget>
+
+  <div class="prose">
+    <L min={2}>
+      <p>
+        The capacity column is the one that changes deployment decisions. A trillion-parameter
+        model at BF16 needs 2 TB of weights and does not fit in a single rack's HBM alongside
+        activations and <T id="kv-cache">KV cache</T>. The same model at FP4 needs 500 GB and
+        leaves room to work in. NVFP4 — NVIDIA's block-scaled 4-bit format, which attaches a shared
+        scale factor to small groups of values — exists to make that trade survivable numerically.
+      </p>
+      <p>
+        It is not free, and the honest framing is that FP4 is a quantisation decision with an
+        accuracy budget, not a free doubling. NVIDIA's own MLPerf submissions are the evidence
+        that the budget can be met on real models: <S id="mlperf-nvfp4" /> on Llama 3.1 405B
+        training at equal GPU count.<Cite ids="nv-devblog-mlperf" />
+      </p>
+    </L>
+
+    <Callout kind="caveat">
+      <p>
+        The <S id="fp4-sparse" /> headline is a <T id="sparsity">structured-sparsity</T> figure:
+        it assumes half the weights are skipped in a fixed 2-of-4 pattern. Dense FP4 is
+        <S id="fp4-dense" />. Whenever you compare a rack figure to anything, check which one is
+        being quoted — this is the single most common apples-to-oranges error in Blackwell
+        comparisons.
+      </p>
+    </Callout>
+
+    <h2 id="numbers">Per-GPU figures</h2>
+
+    <SpecTable
+      caption="Blackwell B200"
+      ids={['transistors', 'process', 'nv-hbi', 'hbm-per-gpu', 'hbm-bw', 'l2', 'gpu-fp4', 'nvlink-per-gpu', 'per-gpu-power']}
+    />
+
+    <Deeper title="Why arithmetic intensity, not FLOPS, is the number to carry around">
+      <p>
+        Divide peak throughput by peak memory bandwidth and you get the FLOPs-per-byte a kernel
+        must achieve before the tensor cores become the constraint. For Blackwell at FP4 that
+        ridge point sits in the low thousands. Dense matrix multiply with large enough tiles clears
+        it. <T id="decode">Decode</T> — one token at a time, re-reading every weight — does not
+        come close: it is memory-bound by construction, at any batch size that fits.
+      </p>
+      <p>
+        This is why the rack is built around bandwidth rather than around FLOPS, and why the next
+        two chapters are about interconnect rather than about compute.
+        <a href="/comparison#roofline">The roofline plot</a> makes the same point graphically.
+      </p>
+    </Deeper>
+  </div>
+
+  <script>
+    interface Fmt { bytes: number; flops: string | null; rel: string; note: string }
+    const F: Record<string, Fmt> = {
+      fp4: { bytes: 0.5, flops: '1,440 PFLOPS', rel: '8×',
+        note: 'The published rack headline, and a sparse figure — dense FP4 is about 720 PFLOPS. NVFP4 attaches a shared scale factor to small blocks of values to keep 4 bits numerically usable.' },
+      fp8: { bytes: 1, flops: '720 PFLOPS', rel: '4×',
+        note: 'The format most production training runs actually used before NVFP4. Half the throughput of FP4, twice the bytes per parameter.' },
+      bf16: { bytes: 2, flops: null, rel: '2×',
+        note: 'Follows the same halving ladder — each step down in precision doubles Tensor Core throughput. The absolute BF16 rack figure is not in this site’s primary source set, so only the ratio is shown.' },
+      fp32: { bytes: 4, flops: null, rel: '1×',
+        note: 'Effectively a reference point rather than a serving format. Nothing at this scale runs inference in FP32; it is here to anchor the ratios.' },
+    };
+    const HBM_PER_GPU = 180e9;   // usable after ECC
+    const HBM_RACK = 72 * 180e9;
+
+    const root = document.querySelector<HTMLElement>('[data-prec]');
+    if (root) {
+      const out = (k: string) => root.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+      const fmtCount = (n: number) => n >= 1e12 ? (n / 1e12).toFixed(1) + ' T' : (n / 1e9).toFixed(0) + ' B';
+
+      const apply = (key: string) => {
+        const f = F[key];
+        out('bytes').textContent = String(f.bytes);
+        out('pergpu').textContent = fmtCount(HBM_PER_GPU / f.bytes);
+        out('perrack').textContent = fmtCount(HBM_RACK / f.bytes);
+        out('flops').textContent = f.flops ?? 'not published here';
+        out('rel').textContent = f.rel;
+        out('note').textContent = f.note;
+        root.querySelectorAll<HTMLButtonElement>('[data-fmt]').forEach((b) =>
+          b.setAttribute('aria-pressed', String(b.dataset.fmt === key)));
+      };
+      root.querySelectorAll<HTMLButtonElement>('[data-fmt]').forEach((b) =>
+        b.addEventListener('click', () => apply(b.dataset.fmt!)));
+      apply('fp4');
+    }
+  </script>
+</Base>

@@ -1,0 +1,166 @@
+---
+import Base from '../layouts/Base.astro';
+import RackViewer from '../components/RackViewer.astro';
+import S from '../components/S.astro';
+import T from '../components/T.astro';
+import L from '../components/L.astro';
+import Cite from '../components/Cite.astro';
+import Callout from '../components/Callout.astro';
+import Deeper from '../components/Deeper.astro';
+import SpecTable from '../components/SpecTable.astro';
+import { partInfo } from '../scripts/rack-parts';
+---
+<Base
+  title="Anatomy of the Rack"
+  description="Eighteen compute trays, nine NVSwitch trays, a copper NVLink spine, a busbar and a coolant loop — the GB200 NVL72 pulled apart part by part."
+  kicker="Chapter 02"
+  heading="Anatomy of the Rack"
+  slug="/anatomy"
+>
+  <div class="prose">
+    <p class="lede">
+      Twenty-seven trays on a regular pitch, a spine of copper at the back, a bar of copper down
+      one side and water through all of it. Drag the model, pull the explode slider, and click
+      anything that looks interesting.
+    </p>
+  </div>
+
+  <RackViewer
+    caption="Schematic model, generated from the dimensions in the table below rather than from CAD. Tray pitch and group ordering follow public teardown photography and OCP mechanical documentation; it is an explanatory diagram, not a fabrication drawing."
+  />
+
+  <div class="prose">
+    <h2 id="stack">Reading the stack</h2>
+
+    <L at={1}>
+      <p>
+        Look at the model from the front and it is a stack of thin drawers. Most of them —
+        eighteen — are <strong>compute trays</strong>, and those hold the chips that do the actual
+        work. Nine more, sitting in the middle of the stack, are <strong>switch trays</strong>:
+        they do no computing at all, they just connect the other trays to each other.
+      </p>
+      <p>
+        The rest of the rack exists to keep those twenty-seven drawers fed and cool. There is a
+        bar carrying electricity down the side, pipes carrying water up the back, and a thick
+        bundle of cables joining every compute tray to every switch tray.
+      </p>
+    </L>
+
+    <L min={2}>
+      <p>
+        The <S id="compute-trays" /> compute trays and <S id="switch-trays" /> switch trays are
+        both 1U, on the same pitch, in the same rails. The ordering is what carries information:
+        the switch trays sit in the <em>middle</em> of the stack, with compute trays above and
+        below them.
+      </p>
+      <p>
+        That placement is not aesthetic. Every compute tray has to reach every switch tray over
+        copper, and copper's reach at NVLink signalling rates is short and expensive. Putting the
+        switches in the middle halves the worst-case cable run. The whole vertical arrangement of
+        the rack is a cable-length optimisation.<Cite ids={['sth-teardown', 'nv-ocp']} />
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        Group sizes above and below the switch band are not symmetric — public teardowns show
+        eight trays in one group and ten in the other, with power shelves interleaved at the top,
+        middle and bottom of the stack. The asymmetry follows from busbar tap placement and from
+        the height the CDU occupies at the base, not from anything electrical about the fabric.
+      </p>
+      <p>
+        Service implications are worth stating plainly. Every tray is front-serviceable and
+        blind-mates both its data and its liquid connections, so the mean time to replace a
+        compute tray is a matter of minutes and does not involve breaking the coolant loop. The
+        failure domain, however, is not the tray: losing one tray removes four GPUs from a
+        72-GPU NVLink domain, and the collective operations of any job spanning that domain must
+        be reformed. The <T id="ras">RAS engine</T> exists to make that a scheduled event rather
+        than a surprise.
+      </p>
+    </L>
+
+    <h2 id="parts">Every part, in text</h2>
+
+    <p>
+      The same descriptions the model shows when you click a part. This list is the
+      accessible path: nothing in the 3D view is stated only there.
+    </p>
+
+    <div class="part-list bleed">
+      {partInfo.map((p) => (
+        <div data-group={p.group} id={`part-${p.id}`}>
+          <h3>{p.label} <span class="count">{p.count}</span></h3>
+          <p><strong>{p.summary}</strong></p>
+          <p>{p.detail}</p>
+        </div>
+      ))}
+    </div>
+
+    <Callout kind="myth">
+      <p>
+        <strong>"It's just a bigger DGX."</strong> A DGX or HGX system is a server: a baseboard of
+        eight GPUs, an x86 host, PCIe between them, and NVLink that stops at the chassis wall.
+        NVL72 moves the unit of integration from the server to the rack — the host CPU changes
+        architecture, PCIe leaves the critical path, and the enclosure itself becomes the thing
+        that is designed. <a href="/comparison">The comparison chapter</a> works through what
+        actually differs.
+      </p>
+    </Callout>
+
+    <h2 id="numbers">Mechanical figures</h2>
+
+    <SpecTable
+      caption="Rack"
+      ids={['rack-height', 'rack-width', 'rack-depth', 'rack-weight', 'compute-trays', 'switch-trays', 'switch-asics', 'superchips', 'rack-power']}
+    />
+
+    <Deeper title="Why 1.36 tonnes is a bigger problem than it sounds">
+      <p>
+        Spread over the rack's roughly 0.72 m² footprint, <S id="rack-weight" /> is well over a
+        tonne per square metre — before you account for the fact that raised-floor tiles are rated
+        for distributed load, not for four castors. Many existing halls are rated around 700–1,200
+        kg/m², so an NVL72 is at or past the limit of the floor it would sit on, and the delivery
+        path to get it there has its own limits.
+      </p>
+      <p>
+        Combined with the <S id="retrofit-cost" /> typically quoted to add liquid cooling to
+        existing space,<Cite ids="schneider" /> this is a large part of why these racks
+        concentrate in new build rather than spreading into existing colocation.
+      </p>
+    </Deeper>
+
+    <h2 id="spine">The spine deserves its own paragraph</h2>
+
+    <p>
+      At the back of the rack, four cable cartridges carry <S id="spine-cables" /> copper
+      conductors between the compute trays and the switch trays. Jensen Huang's description —
+      "5,000 NVLink cables, in total, 2 miles" — is close to NVIDIA's own OCP filing, which
+      specifies four cartridges delivering <S id="allreduce" /> of AllReduce
+      bandwidth.<Cite ids="nv-ocp" />
+    </p>
+
+    <L min={2}>
+      <p>
+        The decision to use copper rather than optics is the single most consequential engineering
+        choice in the rack, and it was made on a power budget. NVIDIA's stated position is that
+        the transceivers and retimers for an optical spine would have drawn about
+        <S id="optical-penalty" />; SemiAnalysis arrived at ~19.4 kW independently by counting 648
+        1.6T transceivers at roughly 30 W each.<Cite ids="semianalysis-optical" />
+      </p>
+      <p>
+        Against a <S id="rack-power" /> budget, that is roughly one sixth of the rack's entire
+        power draw spent on moving data a metre and a half. Copper at that reach costs almost
+        nothing by comparison. The rack's shape — switches centred, trays close-packed, spine
+        short — falls out of the requirement that copper remain viable.
+      </p>
+    </L>
+
+    <Callout kind="caveat">
+      <p>
+        Cable count is quoted as "over 5,000" by NVIDIA and as 5,184 by several secondary
+        sources. Both appear here as a range rather than a single number; see
+        <a href="/sources#disputed">the disputed-figures list</a>.
+      </p>
+    </Callout>
+  </div>
+</Base>

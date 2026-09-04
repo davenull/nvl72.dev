@@ -1,0 +1,202 @@
+---
+import Base from '../layouts/Base.astro';
+import RackViewer from '../components/RackViewer.astro';
+import S from '../components/S.astro';
+import T from '../components/T.astro';
+import L from '../components/L.astro';
+import Cite from '../components/Cite.astro';
+import Callout from '../components/Callout.astro';
+import Deeper from '../components/Deeper.astro';
+import { numbered } from '../data/chapters';
+---
+<Base
+  title="One Giant GPU"
+  description="An explorable explainer for the NVIDIA GB200 NVL72: 72 Blackwell GPUs in a single NVLink domain, 130 TB/s all-to-all, 120 kW in one rack. Every figure sourced."
+  slug="/"
+>
+  <div class="hero">
+    <div class="hero-grid">
+      <div>
+        <p class="kicker">An explorable explainer</p>
+        <h1>A rack that behaves like <em>one GPU</em>.</h1>
+        <p class="lede">
+          A GB200 NVL72 holds <S id="gpus" /> Blackwell GPUs, <S id="cpus" /> Grace CPUs and
+          <S id="alltoall" /> of all-to-all bandwidth in a footprint the size of a wardrobe.
+          The interesting part is not how much of everything it contains. It is that all of it
+          is wired closely enough to be programmed as a single accelerator.
+        </p>
+      </div>
+      <RackViewer full={false} autoRotate={true} />
+    </div>
+  </div>
+
+  <div class="prose">
+    <dl class="stat-strip bleed">
+      <div><dt>Blackwell GPUs</dt><dd>72</dd></div>
+      <div><dt>Pooled HBM3e</dt><dd>~13.5 <small>TB</small></dd></div>
+      <div><dt>All-to-all NVLink</dt><dd>130 <small>TB/s</small></dd></div>
+      <div><dt>FP4, sparse</dt><dd>1.44 <small>EF</small></dd></div>
+      <div><dt>Rack power</dt><dd>~120 <small>kW</small></dd></div>
+      <div><dt>Mass</dt><dd>~1.36 <small>t</small></dd></div>
+    </dl>
+
+    <h2 id="not-a-cluster">It is not a cluster</h2>
+
+    <L at={1}>
+      <p>
+        Normally, when you want more computing power than one machine can give you, you buy more
+        machines and connect them with a network. The machines stay separate: each one has its own
+        memory, and moving data between them is slow enough that you have to plan around it.
+      </p>
+      <p>
+        This rack does something different. All <S id="gpus" /> of its GPUs are joined by a
+        dedicated interconnect that is fast enough that a program can treat another GPU's memory
+        almost like its own. You do not send a message and wait; you just read the address.
+        That difference — not the raw component count — is what the whole design is for.
+      </p>
+    </L>
+
+    <L min={2}>
+      <p>
+        The instinct on seeing 72 accelerators in one enclosure is to read it as a small cluster
+        that happens to share a chassis. That reading gets the design backwards. In a cluster, the
+        unit of composition is the node: each has private memory, and inter-node traffic crosses a
+        network stack with its own protocol, its own congestion behaviour, and bandwidth an order
+        of magnitude below local memory. You partition your model to <em>avoid</em> that boundary.
+      </p>
+      <p>
+        Inside an NVL72 there is no such boundary to avoid. Every GPU has <S id="nvlink-per-gpu" />
+        of <T id="nvlink">NVLink</T> bandwidth to the fabric, and because each of its
+        <S id="nvlink-links" bare /> ports lands on a different switch ASIC, that bandwidth is
+        available to <em>any</em> peer simultaneously. The fabric is
+        <T id="non-blocking">non-blocking</T>: no traffic pattern degrades another. Aggregate
+        in-rack bandwidth is <S id="alltoall" />.<Cite ids={['nv-gb200', 'nv-nvlink']} />
+      </p>
+      <p>
+        NVIDIA's own framing is that the rack "acts as a single, massive GPU".<Cite ids="nv-gb200" />
+        Marketing language, but in this case it describes the programming model accurately:
+        <S id="hbm-total" /> of <T id="hbm3e">HBM3e</T> in one address space, coherent, reachable
+        by ordinary load and store instructions.
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        The port arithmetic is worth doing explicitly, because it is the entire argument.
+        Each Blackwell GPU exposes 18 NVLink 5 ports at 100 GB/s bidirectional. The rack contains
+        <S id="switch-trays" bare /> NVSwitch trays of two ASICs each — <S id="switch-asics" bare />
+        ASICs, exactly matching the port count per GPU. Wire port <em>n</em> of every GPU to switch
+        <em>n</em> and you get a single-layer fabric with no oversubscription and no second tier:
+        72 endpoints × 18 ports, against 18 switches × 72 ports. There is no topology to be clever
+        about, no rail assignment, no bisection ratio to derate collectives against.
+      </p>
+      <p>
+        What that removes from the performance model matters more than what it adds. Tensor and
+        expert parallel dimensions can be chosen for numerical and load-balance reasons rather than
+        to keep chatty dimensions inside a node boundary. The classic "TP within the node, PP
+        across nodes" heuristic has no node boundary to respect until you reach the rack edge.
+      </p>
+    </L>
+
+    <Callout kind="key">
+      <p>
+        Everything else on this site follows from one design decision: extend the coherent,
+        load/store interconnect that used to stop at the edge of a server board all the way to the
+        edge of a rack — and then pay whatever it costs in power, copper and plumbing to make that
+        physically possible.
+      </p>
+    </Callout>
+
+    <h2 id="what-it-costs">What that decision costs</h2>
+
+    <p>
+      Extending NVLink across two metres of rack is not free, and the bill comes due in three
+      places at once.
+    </p>
+
+    <div class="grid cols-3">
+      <div class="card-tile">
+        <span class="big">~120 kW</span>
+        <h3>Power</h3>
+        <p>
+          Roughly sixteen times the worldwide average rack density of <S id="mean-rack" />.
+          Per-server power supplies are gone, replaced by a rack-level <T id="busbar">busbar</T>.
+        </p>
+      </div>
+      <div class="card-tile">
+        <span class="big">5,000+</span>
+        <h3>Copper cables</h3>
+        <p>
+          About two miles of them in four cartridges. Optical would have cost roughly
+          <S id="optical-penalty" /> in transceivers alone — a sixth of the rack's power budget,
+          to move data 1.5 m.
+        </p>
+      </div>
+      <div class="card-tile">
+        <span class="big">100%</span>
+        <h3>Liquid cooled</h3>
+        <p>
+          Direct-to-chip cold plates, blind-mate <T id="uqd">quick disconnects</T>, warm water in
+          at <S id="inlet-temp" />. Air cannot remove this much heat from this volume.
+        </p>
+      </div>
+    </div>
+
+    <Deeper title="Why is a chip-to-chip link worth this much trouble?">
+      <p>
+        Because the workloads that justify the rack are not compute-bound in the way the FLOPS
+        figure suggests. A <T id="moe">mixture-of-experts</T> model routes every token to a handful
+        of experts, so each layer performs an all-to-all exchange whose size scales with batch and
+        model width. <T id="decode">Decode</T>, the token-by-token phase of inference, re-reads the
+        entire weight set to do a small amount of arithmetic and is limited by memory bandwidth
+        outright.
+      </p>
+      <p>
+        For both, the binding constraint is bytes moved per second, not floating-point operations
+        per second. <a href="/comparison#roofline">The roofline chapter</a> makes this concrete.
+        The rack exists because bandwidth is the scarce resource, and bandwidth is what physical
+        proximity buys.
+      </p>
+    </Deeper>
+
+    <h2 id="how-to-read">How to read this site</h2>
+
+    <p>
+      Three things are worth knowing before you start.
+    </p>
+
+    <p>
+      <strong>There is a depth control in the header.</strong> "New grad", "Engineer" and
+      "Architect" rewrite the same pages at different levels — plain language, systems detail, or
+      full port arithmetic and thermal budgets. It is not a summary toggle; the deeper levels say
+      different things, not more things. Try switching it now and re-reading the section above.
+    </p>
+
+    <p>
+      <strong>Numbers are hoverable, and disagreement is shown rather than hidden.</strong>
+      Every figure links back to where it came from. Where published sources genuinely conflict —
+      pooled HBM is quoted anywhere from 13.4 to 13.8 TB depending on whether you count physical or
+      post-ECC capacity — the figure is marked
+      <span style="color:var(--amber)">±</span> and hovering it shows the range.
+      <a href="/sources#disputed">All of them are listed together.</a>
+    </p>
+
+    <p>
+      <strong>Nothing lives only in the 3D view.</strong> Every part the model shows is also
+      described in text on the same page. The interactive figures are there to make a relationship
+      manipulable, not to be the sole carrier of a fact.
+    </p>
+
+    <h2 id="chapters">Chapters</h2>
+
+    <nav class="chapter-index bleed" aria-label="All chapters">
+      {numbered.map((c) => (
+        <a href={c.slug}>
+          <span class="n">{String(c.n).padStart(2, '0')}</span>
+          <span class="ttl">{c.title}</span>
+          <span class="blurb">{c.blurb}</span>
+        </a>
+      ))}
+    </nav>
+  </div>
+</Base>

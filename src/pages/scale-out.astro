@@ -1,0 +1,215 @@
+---
+import Base from '../layouts/Base.astro';
+import S from '../components/S.astro';
+import T from '../components/T.astro';
+import L from '../components/L.astro';
+import Cite from '../components/Cite.astro';
+import Callout from '../components/Callout.astro';
+import Deeper from '../components/Deeper.astro';
+import Widget from '../components/Widget.astro';
+import SpecTable from '../components/SpecTable.astro';
+---
+<Base
+  title="Scale-Out: SuperPODs"
+  description="What happens at the rack boundary, where per-GPU bandwidth falls by roughly an order of magnitude — and how a 576-GPU SuperPOD and a 9,216-GPU fabric are built around that cliff."
+  kicker="Chapter 07"
+  heading="Scale-Out: SuperPODs"
+  slug="/scale-out"
+>
+  <div class="prose">
+    <p class="lede">
+      Inside the rack, every GPU has 900 GB/s of egress. One metre outside it, the same GPU has
+      50 or 100. That cliff is the most important number in cluster design, and nothing about the
+      NVL72 removes it — the rack just moves it further out.
+    </p>
+
+    <h2 id="tiers">Three tiers, and the step between them</h2>
+  </div>
+
+  <Widget
+    title="Zoom out"
+    hint="Pick a tier"
+    caption="Per-GPU egress bandwidth at each tier. NVLink's 1.8 TB/s headline is bidirectional, so one direction is 900 GB/s; scale-out figures are SuperNIC line rates per GPU. The ratio, not the absolute number, is what shapes a parallelism strategy."
+  >
+    <div data-tiers>
+      <svg class="diagram" viewBox="0 0 720 260" role="img" aria-label="Topology at three tiers: one rack of 72 GPUs, a SuperPOD of eight racks and 576 GPUs, and a rail-optimised fabric of up to 9,216 GPUs.">
+        <g data-topo></g>
+      </svg>
+      <dl class="readout" style="margin-top:1rem">
+        <div><dt>Domain</dt><dd data-out="domain">1 rack</dd></div>
+        <div><dt>GPUs</dt><dd data-out="gpus">72</dd></div>
+        <div><dt>Fabric</dt><dd data-out="fabric">NVLink 5</dd></div>
+        <div><dt>Egress per GPU</dt><dd data-out="bw">900 GB/s</dd></div>
+        <div><dt>Versus in-rack</dt><dd data-out="ratio">1.0×</dd></div>
+      </dl>
+      <p data-out="note" style="margin:1rem 0 0;font-size:0.875rem;color:var(--ink-2)"></p>
+    </div>
+    <div slot="controls" class="controls-row">
+      <div class="seg" role="group" aria-label="Tier">
+        <button type="button" data-tier="rack" aria-pressed="true">Rack · 72</button>
+        <button type="button" data-tier="pod" aria-pressed="false">SuperPOD · 576</button>
+        <button type="button" data-tier="cluster" aria-pressed="false">Fabric · 9,216</button>
+      </div>
+    </div>
+  </Widget>
+
+  <div class="prose">
+    <L at={1}>
+      <p>
+        One rack is already a very large computer, but the biggest training runs use far more than
+        seventy-two GPUs. So racks get connected to each other — eight of them make a "SuperPOD" of
+        <S id="superpod-gpus" /> GPUs, and SuperPODs get connected in turn, up to
+        <S id="max-gpus" /> GPUs in one system.
+      </p>
+      <p>
+        The catch is that the connection between racks is roughly ten times slower per GPU than
+        the connection inside one. So the work has to be divided carefully: the parts that talk
+        constantly are kept inside a rack, and only the parts that talk occasionally are allowed to
+        cross between them.
+      </p>
+    </L>
+
+    <L min={2}>
+      <p>
+        A SuperPOD is <S id="superpod-racks" /> NVL72 racks: <S id="superpod-gpus" /> GPUs,
+        roughly <S id="superpod-bw" /> aggregate and about <S id="superpod-mem" /> of fast
+        memory.<Cite ids="nv-gb200" /> Racks are joined by Quantum-X800 InfiniBand
+        (<S id="quantum-x800" bare /> ports on a Q3400) or Spectrum-X Ethernet, in a rail-optimised
+        topology; the fabric scales to <S id="max-gpus" /> GPUs with 128 leaf switches. NICs are
+        <S id="cx7" /> ConnectX-7 on GB200 and <S id="cx8" /> ConnectX-8 on GB300, with BlueField-3
+        DPUs handling storage and isolation.
+      </p>
+      <p>
+        The practical consequence is a parallelism assignment. Tensor parallelism and wide
+        <T id="expert-parallelism">expert parallelism</T> are chatty per layer and belong inside the
+        NVLink domain. Pipeline and data parallelism exchange far less per step and tolerate the
+        scale-out tier. What NVL72 changed is not that this rule exists but where the line falls:
+        the chatty dimensions now have 72 GPUs to spread across instead of 8.
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        Rail-optimised means each GPU's NIC connects to a dedicated leaf switch shared with the
+        same-numbered GPU in other racks, so a ring or all-reduce along that rail crosses one
+        switch rather than traversing the tree. It is the scale-out analogue of the port-matching
+        trick that makes the in-rack fabric single-layer, and it exists for the same reason:
+        collectives dominate, so build the topology the collective wants.
+      </p>
+      <p>
+        <T id="mnnvl">Multi-Node NVLink</T> complicates the clean story slightly. The IMEX service
+        allows GPU memory to be exported and imported across operating-system domains within an
+        NVLink fabric, with Kubernetes modelling the boundary as a ComputeDomain resource via the
+        GPU Operator and DRA driver.<Cite ids="nv-mnnvl" /> The NVLink domain and the OS domain are
+        not the same thing, and treating them as identical is a common source of confusion when
+        scheduling on these racks.
+      </p>
+    </L>
+
+    <Callout kind="key">
+      <p>
+        The rack did not abolish the bandwidth cliff. It moved it from the edge of an 8-GPU
+        baseboard to the edge of a 72-GPU rack — a 9× larger coherent domain to fit your
+        most communication-hungry model dimension inside. That is the entire product.
+      </p>
+    </Callout>
+
+    <h2 id="numbers">Scale-out figures</h2>
+
+    <SpecTable
+      caption="Beyond the rack"
+      ids={['superpod-racks', 'superpod-gpus', 'superpod-bw', 'superpod-mem', 'max-gpus', 'cx7', 'cx8', 'quantum-x800']}
+    />
+
+    <Deeper title="What 39 racks bought">
+      <p>
+        MLPerf Training v5.0 gives a concrete data point for the whole stack working together:
+        2,496 Blackwell GPUs — 39 racks — completed Llama 3.1 405B in
+        <S id="mlperf-405b" />.<Cite ids={['coreweave-pr', 'mlcommons']} /> The comparison worth
+        holding onto is the rack count: an H100-equivalent run needed roughly 156 racks for the
+        same work. A later round scaled to 5,120 GB200 GPUs and finished in about ten minutes.
+      </p>
+      <p>
+        Density is the point. Four times fewer racks is four times less floor, less optical
+        cabling, fewer switch hops and a shorter critical path for every collective in the run.
+      </p>
+    </Deeper>
+  </div>
+
+  <script>
+    const tiers = document.querySelector<HTMLElement>('[data-tiers]');
+    if (tiers) {
+      const fig = tiers.closest('figure')!;
+      const NS = 'http://www.w3.org/2000/svg';
+      const topo = tiers.querySelector('[data-topo]')!;
+      const out = (k: string) => tiers.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+      const el = (n: string, a: Record<string, string | number>) => {
+        const e = document.createElementNS(NS, n);
+        for (const k in a) e.setAttribute(k, String(a[k]));
+        return e;
+      };
+      const rack = (x: number, y: number, w: number, h: number, fill: string, op = 1) =>
+        topo.appendChild(el('rect', { x, y, width: w, height: h, rx: 2, fill, opacity: op }));
+      const label = (x: number, y: number, t: string, anchor = 'middle') => {
+        const e = el('text', { x, y, 'text-anchor': anchor });
+        e.textContent = t;
+        topo.appendChild(e);
+      };
+
+      const DATA = {
+        rack: { domain: '1 rack', gpus: '72', fabric: 'NVLink 5 + NVSwitch', bw: 900e9,
+          note: 'One NVLink domain. Every GPU reaches every other in a single switch hop at full rate, and memory is addressable rather than message-passed. This is the tier that makes wide expert parallelism affordable.' },
+        pod: { domain: 'SuperPOD · 8 racks', gpus: '576', fabric: 'Quantum-X800 InfiniBand', bw: 100e9,
+          note: 'Racks are joined by InfiniBand or Spectrum-X Ethernet in a rail-optimised topology. Per-GPU bandwidth drops by roughly 9× on ConnectX-8 and 18× on ConnectX-7 — the step that decides which parallelism dimension is allowed to cross a rack boundary.' },
+        cluster: { domain: 'Rail-optimised fabric', gpus: '9,216', fabric: '128 leaf switches', bw: 100e9,
+          note: 'Same per-GPU line rate as the SuperPOD tier, with more switch hops and more contention in practice. Scaling past this point is a facility and network engineering problem rather than a rack one.' },
+      } as const;
+
+      const draw = (tier: keyof typeof DATA) => {
+        topo.textContent = '';
+        if (tier === 'rack') {
+          for (let i = 0; i < 18; i++) {
+            rack(300, 34 + i * 10, 120, 7, i >= 5 && i < 14 ? 'var(--switch)' : 'var(--gpu)', 0.75);
+          }
+          label(360, 24, '1 rack · 18 compute + 9 switch trays');
+          label(360, 232, '72 GPUs in one NVLink domain · 900 GB/s egress each');
+        } else if (tier === 'pod') {
+          for (let r = 0; r < 8; r++) {
+            const x = 100 + r * 68;
+            for (let i = 0; i < 18; i++) rack(x, 60 + i * 8, 44, 5.5, i >= 5 && i < 14 ? 'var(--switch)' : 'var(--gpu)', 0.7);
+            topo.appendChild(el('line', { x1: x + 22, y1: 52, x2: x + 22, y2: 34, stroke: 'var(--cyan)', 'stroke-width': 1.5 }));
+          }
+          topo.appendChild(el('rect', { x: 100, y: 22, width: 524, height: 12, rx: 3, fill: 'var(--cyan)', opacity: 0.55 }));
+          label(362, 18, 'InfiniBand / Spectrum-X leaf');
+          label(362, 232, '8 racks · 576 GPUs · ~1 PB/s aggregate · ~240 TB fast memory');
+        } else {
+          for (let p = 0; p < 16; p++) {
+            const x = 60 + (p % 8) * 78;
+            const y = p < 8 ? 60 : 150;
+            topo.appendChild(el('rect', { x, y, width: 60, height: 52, rx: 4, fill: 'var(--gpu)', opacity: 0.25, stroke: 'var(--line-strong)' }));
+            for (let r = 0; r < 8; r++) rack(x + 4 + r * 7, y + 8, 4.5, 36, 'var(--gpu)', 0.7);
+          }
+          topo.appendChild(el('rect', { x: 60, y: 122, width: 600, height: 10, rx: 3, fill: 'var(--cyan)', opacity: 0.5 }));
+          label(360, 22, '16 SuperPODs · 128 racks');
+          label(360, 232, 'up to 9,216 GPUs · 128 leaf switches');
+        }
+      };
+
+      const apply = (tier: keyof typeof DATA) => {
+        const d = DATA[tier];
+        draw(tier);
+        out('domain').textContent = d.domain;
+        out('gpus').textContent = d.gpus;
+        out('fabric').textContent = d.fabric;
+        out('bw').textContent = (d.bw / 1e9).toFixed(0) + ' GB/s';
+        out('ratio').textContent = (d.bw / DATA.rack.bw).toFixed(2).replace(/0+$/, '').replace(/\.$/, '') + '×';
+        out('note').textContent = d.note;
+        fig.querySelectorAll<HTMLButtonElement>('[data-tier]').forEach((b) =>
+          b.setAttribute('aria-pressed', String(b.dataset.tier === tier)));
+      };
+      fig.querySelectorAll<HTMLButtonElement>('[data-tier]').forEach((b) =>
+        b.addEventListener('click', () => apply(b.dataset.tier as keyof typeof DATA)));
+      apply('rack');
+    }
+  </script>
+</Base>

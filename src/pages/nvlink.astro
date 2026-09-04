@@ -1,0 +1,361 @@
+---
+import Base from '../layouts/Base.astro';
+import S from '../components/S.astro';
+import T from '../components/T.astro';
+import L from '../components/L.astro';
+import Cite from '../components/Cite.astro';
+import Callout from '../components/Callout.astro';
+import Deeper from '../components/Deeper.astro';
+import Widget from '../components/Widget.astro';
+import SpecTable from '../components/SpecTable.astro';
+---
+<Base
+  title="NVLink & NVSwitch"
+  description="Why 18 ports per GPU and 18 switch ASICs produce a single-layer non-blocking fabric across 72 GPUs, and what 130 TB/s is actually worth."
+  kicker="Chapter 05"
+  heading="NVLink & NVSwitch"
+  slug="/nvlink"
+>
+  <div class="prose">
+    <p class="lede">
+      This is the chapter the rest of the rack exists to serve. The arithmetic is small enough to
+      do in your head, and once you have done it the design stops looking like a specification and
+      starts looking like the only sensible answer.
+    </p>
+
+    <h2 id="arithmetic">Eighteen and eighteen</h2>
+
+    <L at={1}>
+      <p>
+        Every GPU has eighteen separate connections leaving it. The rack contains eighteen switch
+        chips. Wire the first connection of every GPU to the first switch, the second to the
+        second, and so on, and something neat happens: every GPU is one hop from every other GPU,
+        and no two conversations have to share a wire.
+      </p>
+      <p>
+        That is what people mean when they say the rack has no internal bottleneck. It is not a
+        claim about being fast; it is a claim about there being nowhere for traffic to pile up.
+      </p>
+    </L>
+
+    <L min={2}>
+      <p>
+        Each Blackwell GPU exposes <S id="nvlink-links" /> NVLink 5 ports at 100 GB/s
+        bidirectional, totalling <S id="nvlink-per-gpu" />. Each NVSwitch tray carries two
+        NVSwitch5 ASICs, and with <S id="switch-trays" /> trays that is
+        <S id="switch-asics" /> ASICs — exactly the port count per GPU.<Cite ids="nv-nvlink" />
+      </p>
+      <p>
+        Connect port <em>n</em> of each GPU to switch <em>n</em>, and every switch sees all 72
+        GPUs exactly once. Each ASIC has 36 + 36 ports and <S id="nvswitch-asic" /> of switching
+        capacity. The fabric is one layer deep, fully connected, and
+        <T id="non-blocking">non-blocking</T>: any permutation of senders and receivers runs at
+        line rate. Aggregate in-rack bandwidth is <S id="alltoall" />.
+      </p>
+    </L>
+  </div>
+
+  <Widget
+    title="Fabric explorer"
+    hint="Hover a GPU to trace its 18 links"
+    caption="Each of a GPU's 18 NVLink ports terminates on a different NVSwitch ASIC, so all 18 are usable at once toward any set of peers. Drawn as 18 trays of four GPUs against 9 switch trays of two ASICs; link lines are schematic, the copper spine carries over 5,000 of them."
+  >
+    <div data-fabric>
+      <svg class="diagram" viewBox="0 0 760 420" role="img"
+        aria-label="Diagram of 72 GPUs in 18 trays on the left connected to 18 NVSwitch ASICs in 9 trays on the right. Selecting a GPU draws one link to each of the 18 switch ASICs.">
+        <text x="8" y="14">18 compute trays · 72 GPUs</text>
+        <text x="752" y="14" text-anchor="end">9 NVSwitch trays · 18 ASICs</text>
+        <g data-links stroke="var(--copper)" fill="none"></g>
+        <g data-gpus></g>
+        <g data-switches></g>
+      </svg>
+      <dl class="readout" style="margin-top:0.75rem">
+        <div><dt>Selected</dt><dd data-out="sel">—</dd></div>
+        <div><dt>Links from this GPU</dt><dd data-out="links">18</dd></div>
+        <div><dt>Bandwidth, all ports</dt><dd data-out="bw">1.8 TB/s</dd></div>
+        <div><dt>Reachable in one hop</dt><dd data-out="hop">71 GPUs</dd></div>
+      </dl>
+    </div>
+    <div slot="controls" class="controls-row">
+      <div class="seg" role="group" aria-label="Link display">
+        <button type="button" data-mode="one" aria-pressed="true">One GPU</button>
+        <button type="button" data-mode="all" aria-pressed="false">All 1,296 links</button>
+      </div>
+      <span style="color:var(--ink-3)">72 GPUs × 18 ports = 1,296 endpoint links, before the spine's cable count.</span>
+    </div>
+  </Widget>
+
+  <div class="prose">
+    <L min={3}>
+      <p>
+        Worth stating what this removes rather than what it adds. There is no rail assignment, no
+        leaf/spine oversubscription ratio, no bisection figure to derate collectives against, and
+        no distinction between "near" and "far" peers within the rack. A parallelism strategy can
+        be chosen on numerical and load-balance grounds instead of being contorted to keep
+        high-traffic dimensions inside an 8-GPU node.
+      </p>
+      <p>
+        The one thing it does not remove is the rack boundary. Inside, per-GPU egress is 900 GB/s;
+        across racks it is 50 GB/s on ConnectX-7 or 100 GB/s on ConnectX-8 — roughly a factor of
+        nine to eighteen. Every serious deployment decision at this scale is about which model
+        dimension gets to cross that line.
+        <a href="/scale-out">Chapter 7</a> takes that up.
+      </p>
+    </L>
+
+    <h2 id="sharp">The switch does arithmetic</h2>
+
+    <p>
+      An <S id="nvswitch-asic" bare /> Tb/s switch ASIC looks underspecified next to a 51.2 Tb/s
+      Ethernet switch of the same era. The missing capacity went somewhere deliberate.
+    </p>
+
+    <L min={2}>
+      <p>
+        NVSwitch carries <T id="sharp">SHARP</T> engines, which perform reductions and multicast
+        <em>inside</em> the switch. In an all-reduce — the collective that dominates distributed
+        training — partial results are combined as they pass through the fabric instead of being
+        shuttled between GPUs and summed at the endpoints. That roughly halves the bytes on the
+        wire and removes a round trip from the critical path.
+      </p>
+      <p>
+        Trading port bandwidth for in-network compute is the right trade when your dominant traffic
+        pattern is a collective rather than point-to-point. It is also why the spine's quoted
+        AllReduce figure, <S id="allreduce" />, is higher than the all-to-all figure of
+        <S id="alltoall" />: they are measuring different operations, not disagreeing.
+      </p>
+    </L>
+
+    <h2 id="calculator">What the bandwidth is worth</h2>
+
+    <p>
+      Bandwidth numbers are hard to feel. This converts them into the thing you actually wait for:
+      the time to complete one all-to-all exchange, the pattern that a
+      <T id="moe">mixture-of-experts</T> layer performs on every forward pass.
+    </p>
+  </div>
+
+  <Widget
+    title="All-to-all exchange time"
+    hint="Drag the payload"
+    caption="A first-order model: time ≈ bytes each GPU must send ÷ that GPU's egress bandwidth. NVLink's 1.8 TB/s is a bidirectional figure, so egress is 900 GB/s; the scale-out numbers are per-SuperNIC line rates. Real collectives add protocol and synchronisation overhead, so treat these as lower bounds and as ratios rather than as predictions."
+  >
+    <div data-bwcalc>
+      <dl class="readout">
+        <div><dt>Payload per GPU</dt><dd data-out="payload">256 MB</dd></div>
+        <div><dt>Egress bandwidth</dt><dd data-out="bw">900 GB/s</dd></div>
+        <div><dt>Exchange time</dt><dd data-out="time">0.28 ms</dd></div>
+        <div><dt>Versus NVLink</dt><dd data-out="ratio">1.0×</dd></div>
+      </dl>
+      <svg class="diagram" viewBox="0 0 720 150" style="margin-top:1rem" role="img" aria-label="Bar chart comparing exchange time across four interconnects.">
+        <g data-bars></g>
+      </svg>
+    </div>
+    <div slot="controls" class="controls-row">
+      <div class="ctl">
+        <label for="payload">Payload per GPU<output data-out="payload-lbl">256 MB</output></label>
+        <input type="range" id="payload" data-payload min="0" max="100" value="50" />
+      </div>
+      <div class="seg" role="group" aria-label="Interconnect">
+        <button type="button" data-fab="nvlink" aria-pressed="true">NVLink 5</button>
+        <button type="button" data-fab="cx8" aria-pressed="false">ConnectX-8</button>
+        <button type="button" data-fab="cx7" aria-pressed="false">ConnectX-7</button>
+        <button type="button" data-fab="pcie" aria-pressed="false">PCIe Gen5 ×16</button>
+      </div>
+    </div>
+  </Widget>
+
+  <div class="prose">
+    <Callout kind="myth">
+      <p>
+        <strong>"72 GPUs sharing one link."</strong> The opposite: every GPU holds
+        <S id="nvlink-per-gpu" /> to the fabric simultaneously, and because the ports fan out across
+        all 18 switches, no peer selection reduces that. The aggregate <S id="alltoall" /> is not a
+        shared pipe being divided; it is 72 GPUs each able to move data at full rate at once.
+      </p>
+    </Callout>
+
+    <h2 id="numbers">Interconnect figures</h2>
+
+    <SpecTable
+      caption="NVLink 5 and NVSwitch5"
+      ids={['nvlink-per-gpu', 'nvlink-links', 'nvswitch-asic', 'switch-asics', 'alltoall', 'allreduce', 'spine-cables', 'spine-cartridges', 'optical-penalty']}
+    />
+
+    <Deeper title="Copper, and the 20 kW that decided it">
+      <p>
+        The spine could have been optical. It is not, and the reason is a power calculation:
+        transceivers and retimers for the NVLink spine would have drawn roughly
+        <S id="optical-penalty" />.<Cite ids="semianalysis-optical" /> SemiAnalysis reached
+        ~19.4 kW independently, counting 648 1.6T transceivers at about 30 W each.
+      </p>
+      <p>
+        Against <S id="rack-power" /> that is about a sixth of the rack's budget spent moving data
+        a metre and a half. At that reach copper is both far cheaper and far more efficient — and
+        the price of using it is that the switches must sit in the middle of the rack and the trays
+        must be close-packed around them. The rack's physical arrangement is downstream of this
+        one decision.
+      </p>
+    </Deeper>
+  </div>
+
+  <script>
+    /* ── Fabric explorer ─────────────────────────────────────────────── */
+    const fab = document.querySelector<HTMLElement>('[data-fabric]');
+    if (fab) {
+      const figFab = fab.closest('figure');
+      const svg = fab.querySelector('svg')!;
+      const gGpu = fab.querySelector('[data-gpus]')!;
+      const gSw = fab.querySelector('[data-switches]')!;
+      const gLink = fab.querySelector('[data-links]')!;
+      const NS = 'http://www.w3.org/2000/svg';
+      const el = (n: string, a: Record<string, string | number>) => {
+        const e = document.createElementNS(NS, n);
+        for (const k in a) e.setAttribute(k, String(a[k]));
+        return e;
+      };
+
+      const TOP = 26, ROW = 21, GW = 15, GH = 13;
+      const gpuPos: { x: number; y: number; tray: number; i: number }[] = [];
+      for (let t = 0; t < 18; t++) {
+        const y = TOP + t * ROW;
+        gGpu.appendChild(el('text', { x: 8, y: y + 10, 'font-size': 9 })).textContent = String(t + 1).padStart(2, '0');
+        for (let i = 0; i < 4; i++) {
+          const x = 30 + i * (GW + 4);
+          const r = el('rect', { x, y, width: GW, height: GH, rx: 2, fill: 'var(--gpu)', opacity: 0.55,
+            'data-gpu': t * 4 + i, tabindex: 0, role: 'button',
+            'aria-label': `GPU ${t * 4 + i + 1}, tray ${t + 1}` });
+          gGpu.appendChild(r);
+          gpuPos.push({ x: x + GW, y: y + GH / 2, tray: t, i });
+        }
+      }
+      const swPos: { x: number; y: number }[] = [];
+      for (let s = 0; s < 18; s++) {
+        const y = TOP + 4 + s * ROW;
+        const x = 660;
+        gSw.appendChild(el('rect', { x, y, width: 46, height: 13, rx: 2, fill: 'var(--switch)', opacity: 0.75 }));
+        gSw.appendChild(el('text', { x: x + 52, y: y + 10, 'font-size': 9 })).textContent = 'sw' + String(s + 1).padStart(2, '0');
+        swPos.push({ x, y: y + 6.5 });
+      }
+
+      const draw = (indices: number[], opacity: number) => {
+        gLink.textContent = '';
+        for (const g of indices) {
+          const p = gpuPos[g];
+          for (const s of swPos) {
+            const mid = (p.x + s.x) / 2;
+            gLink.appendChild(el('path', {
+              d: `M${p.x} ${p.y} C ${mid} ${p.y}, ${mid} ${s.y}, ${s.x} ${s.y}`,
+              'stroke-width': 0.7, opacity,
+            }));
+          }
+        }
+      };
+      const out = (k: string) => fab.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+      const select = (g: number | null) => {
+        gGpu.querySelectorAll<SVGRectElement>('[data-gpu]').forEach((r) => {
+          r.setAttribute('opacity', g !== null && Number(r.dataset.gpu) === g ? '1' : '0.55');
+        });
+        if (g === null) { draw([], 0); out('sel').textContent = '—'; return; }
+        draw([g], 0.5);
+        out('sel').textContent = `GPU ${g + 1} · tray ${gpuPos[g].tray + 1}`;
+      };
+      gGpu.querySelectorAll<SVGRectElement>('[data-gpu]').forEach((r) => {
+        const g = Number(r.dataset.gpu);
+        r.style.cursor = 'pointer';
+        r.addEventListener('mouseenter', () => select(g));
+        r.addEventListener('focus', () => select(g));
+        r.addEventListener('click', () => select(g));
+      });
+
+      let mode = 'one';
+      figFab?.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => {
+        b.addEventListener('click', () => {
+          mode = b.dataset.mode!;
+          figFab!.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((o) =>
+            o.setAttribute('aria-pressed', String(o === b)));
+          if (mode === 'all') {
+            draw([...Array(72).keys()], 0.045);
+            out('sel').textContent = 'all 72';
+          } else {
+            select(0);
+          }
+        });
+      });
+      svg.addEventListener('mouseleave', () => { if (mode === 'one') select(0); });
+      select(0);
+    }
+
+    /* ── All-to-all calculator ───────────────────────────────────────── */
+    const calc = document.querySelector<HTMLElement>('[data-bwcalc]');
+    if (calc) {
+      // Per-GPU egress bandwidth in bytes/s. NVLink's headline 1.8 TB/s is
+      // bidirectional, so one direction is 900 GB/s.
+      const FAB: Record<string, { label: string; bw: number }> = {
+        nvlink: { label: 'NVLink 5, in-rack', bw: 900e9 },
+        cx8: { label: 'ConnectX-8, 800 Gb/s', bw: 100e9 },
+        cx7: { label: 'ConnectX-7, 400 Gb/s', bw: 50e9 },
+        pcie: { label: 'PCIe Gen5 ×16', bw: 64e9 },
+      };
+      const figCalc = calc.closest('figure');
+      // The slider lives in the controls row, a sibling of .widget-body.
+      const slider = figCalc!.querySelector<HTMLInputElement>('[data-payload]')!;
+      const bars = calc.querySelector('[data-bars]')!;
+      const NS = 'http://www.w3.org/2000/svg';
+      const out = (k: string) => calc.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+      const lbl = figCalc?.querySelector<HTMLElement>('[data-out="payload-lbl"]');
+      let current = 'nvlink';
+
+      // 1 MB … 8 GB, logarithmic.
+      const payloadBytes = () => 1e6 * Math.pow(8000, Number(slider.value) / 100);
+      const fmtBytes = (b: number) => b >= 1e9 ? (b / 1e9).toFixed(2) + ' GB' : (b / 1e6).toFixed(0) + ' MB';
+      const fmtTime = (s: number) => s >= 1 ? s.toFixed(2) + ' s' : s >= 1e-3 ? (s * 1e3).toFixed(2) + ' ms' : (s * 1e6).toFixed(0) + ' µs';
+
+      const render = () => {
+        const bytes = payloadBytes();
+        const base = bytes / FAB.nvlink.bw;
+        const f = FAB[current];
+        const t = bytes / f.bw;
+        out('payload').textContent = fmtBytes(bytes);
+        if (lbl) lbl.textContent = fmtBytes(bytes);
+        out('bw').textContent = (f.bw / 1e9).toFixed(0) + ' GB/s';
+        out('time').textContent = fmtTime(t);
+        out('ratio').textContent = (t / base).toFixed(1) + '× slower';
+
+        bars.textContent = '';
+        const keys = Object.keys(FAB);
+        const worst = Math.max(...keys.map((k) => bytes / FAB[k].bw));
+        keys.forEach((k, i) => {
+          const y = i * 34 + 8;
+          const time = bytes / FAB[k].bw;
+          const w = Math.max(2, (time / worst) * 470);
+          const rect = document.createElementNS(NS, 'rect');
+          rect.setAttribute('x', '180'); rect.setAttribute('y', String(y));
+          rect.setAttribute('width', String(w)); rect.setAttribute('height', '18');
+          rect.setAttribute('rx', '3');
+          rect.setAttribute('fill', k === current ? 'var(--copper)' : 'var(--line-strong)');
+          bars.appendChild(rect);
+          const name = document.createElementNS(NS, 'text');
+          name.setAttribute('x', '172'); name.setAttribute('y', String(y + 13));
+          name.setAttribute('text-anchor', 'end');
+          name.textContent = FAB[k].label;
+          bars.appendChild(name);
+          const val = document.createElementNS(NS, 'text');
+          val.setAttribute('x', String(186 + w)); val.setAttribute('y', String(y + 13));
+          val.textContent = fmtTime(time);
+          bars.appendChild(val);
+        });
+      };
+      slider.addEventListener('input', render);
+      figCalc?.querySelectorAll<HTMLButtonElement>('[data-fab]').forEach((b) => {
+        b.addEventListener('click', () => {
+          current = b.dataset.fab!;
+          figCalc!.querySelectorAll<HTMLButtonElement>('[data-fab]').forEach((o) =>
+            o.setAttribute('aria-pressed', String(o === b)));
+          render();
+        });
+      });
+      render();
+    }
+  </script>
+</Base>

@@ -1,0 +1,151 @@
+---
+import '../styles/global.css';
+import { chapters, siblings } from '../data/chapters';
+
+interface Props {
+  title: string;
+  description: string;
+  kicker?: string;
+  heading?: string;
+  /** Set on chapter pages to render the prev/next footer. */
+  slug?: string;
+}
+
+const { title, description, kicker, heading, slug } = Astro.props;
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+const { prev, next } = slug ? siblings(slug) : { prev: undefined, next: undefined };
+const full = `${title} · NVL72`;
+---
+<html lang="en" data-depth="2">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{full}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(path, 'https://nvl72.dev')} />
+    <meta property="og:title" content={full} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="nvl72.dev" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#100f0e" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fbfaf8" media="(prefers-color-scheme: light)" />
+    <!--
+      Applied before first paint so the reader's saved depth and theme never
+      flash. Kept inline and tiny on purpose.
+    -->
+    <script is:inline>
+      (() => {
+        const r = document.documentElement;
+        r.classList.add('js');
+        try {
+          const d = localStorage.getItem('nvl72:depth');
+          if (d === '1' || d === '2' || d === '3') r.dataset.depth = d;
+          const t = localStorage.getItem('nvl72:theme');
+          if (t === 'dark' || t === 'light') r.dataset.theme = t;
+        } catch {}
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="masthead">
+      <div class="wrap">
+        <a class="brand" href="/">NVL<b>72</b>.dev</a>
+        <nav aria-label="Chapters">
+          {chapters.map((c) => (
+            <a href={c.slug} aria-current={c.slug === path ? 'page' : undefined}>
+              {c.n !== null && <span class="num">{c.n}. </span>}{c.nav}
+            </a>
+          ))}
+        </nav>
+        <div class="controls">
+          <div class="depth" role="group" aria-label="Explanation depth">
+            <button type="button" data-depth-set="1" aria-pressed="false" title="Plain-language explanations, minimal jargon">New grad</button>
+            <button type="button" data-depth-set="2" aria-pressed="true" title="Assumes systems background">Engineer</button>
+            <button type="button" data-depth-set="3" aria-pressed="false" title="Port arithmetic, thermal budgets, failure domains">Architect</button>
+          </div>
+          <button class="icon-btn" type="button" data-theme-toggle aria-label="Toggle colour theme" title="Toggle colour theme">◐</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      {heading && (
+        <div class="wrap page-head">
+          {kicker && <p class="kicker">{kicker}</p>}
+          <h1>{heading}</h1>
+        </div>
+      )}
+      <div class="wrap">
+        <slot />
+        {slug && (prev || next) && (
+          <nav class="chapter-nav" aria-label="Chapter navigation">
+            {prev ? (
+              <a href={prev.slug} rel="prev"><span class="dir">← Previous</span><span class="ttl">{prev.title}</span></a>
+            ) : <span />}
+            {next && (
+              <a class="next" href={next.slug} rel="next"><span class="dir">Next →</span><span class="ttl">{next.title}</span></a>
+            )}
+          </nav>
+        )}
+      </div>
+    </main>
+
+    <footer class="site">
+      <div class="wrap">
+        <div>
+          <p class="disclaimer">
+            <strong>Not affiliated with, endorsed by, or sponsored by NVIDIA Corporation.</strong>
+            NVIDIA, Blackwell, Grace, NVLink and GB200 NVL72 are trademarks of NVIDIA Corporation,
+            used here nominatively to describe the hardware this site explains. All 3D geometry on
+            this site is original work built from public photographs and openly licensed
+            <a href="https://www.opencompute.org/">Open Compute Project</a> mechanical documentation.
+            No NVIDIA artwork, branding, or CAD is reproduced.
+          </p>
+        </div>
+        <div>
+          <p><strong>Chapters</strong></p>
+          <p>{chapters.slice(0, 6).map((c) => <><a href={c.slug}>{c.nav}</a><br /></>)}</p>
+        </div>
+        <div>
+          <p><strong>&nbsp;</strong></p>
+          <p>{chapters.slice(6).map((c) => <><a href={c.slug}>{c.nav}</a><br /></>)}</p>
+        </div>
+        <div>
+          <p><strong>About</strong></p>
+          <p>
+            An explorable explainer. Every figure is <a href="/sources">sourced</a>; figures that
+            sources disagree about are shown as ranges and marked&nbsp;<span style="color:var(--amber)">±</span>.
+            Everything in the 3D views is also written out in text.
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Depth + theme controls. Progressive enhancement only — the page is
+      // fully readable at depth 2 with this script blocked.
+      const root = document.documentElement;
+      const btns = document.querySelectorAll<HTMLButtonElement>('[data-depth-set]');
+      const sync = (d: string) => {
+        root.dataset.depth = d;
+        btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.depthSet === d)));
+        try { localStorage.setItem('nvl72:depth', d); } catch {}
+        window.dispatchEvent(new CustomEvent('nvl72:depth', { detail: d }));
+      };
+      btns.forEach((b) => b.addEventListener('click', () => sync(b.dataset.depthSet!)));
+      sync(root.dataset.depth ?? '2');
+
+      document.querySelector('[data-theme-toggle]')?.addEventListener('click', () => {
+        const dark = getComputedStyle(root).colorScheme === 'dark';
+        const next = dark ? 'light' : 'dark';
+        root.dataset.theme = next;
+        try { localStorage.setItem('nvl72:theme', next); } catch {}
+        window.dispatchEvent(new CustomEvent('nvl72:theme', { detail: next }));
+      });
+    </script>
+  </body>
+</html>

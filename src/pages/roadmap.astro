@@ -1,0 +1,162 @@
+---
+import Base from '../layouts/Base.astro';
+import S from '../components/S.astro';
+import L from '../components/L.astro';
+import Cite from '../components/Cite.astro';
+import Callout from '../components/Callout.astro';
+import Widget from '../components/Widget.astro';
+import SpecTable from '../components/SpecTable.astro';
+---
+<Base
+  title="Roadmap"
+  description="GB300 today, Vera Rubin NVL144 announced for 2H 2026, and the rack power curve underneath all of it — with announced figures clearly separated from measured ones."
+  kicker="Chapter 10"
+  heading="Roadmap"
+  slug="/roadmap"
+>
+  <div class="prose">
+    <p class="lede">
+      One rule governs this chapter: anything that has not shipped is labelled as announced, and
+      figures taken from keynote slides and supply-chain reporting are not presented next to
+      measured benchmarks as though they were the same kind of thing.
+    </p>
+  </div>
+
+  <Widget
+    title="Generations"
+    hint="Announced entries are marked"
+    caption="Positions are approximate. Solid markers are shipping products with published specifications; hollow markers with a dashed rule are announced roadmap entries whose figures come from keynote material and supply-chain reporting."
+  >
+    <svg class="diagram" viewBox="0 0 720 250" role="img"
+      aria-label="Timeline from GB200 NVL72 through GB300 NVL72 to the announced Vera Rubin NVL144, Rubin Ultra NVL576 and Feynman.">
+      <line x1="40" y1="120" x2="690" y2="120" class="axis"/>
+
+      <g>
+        <circle cx="90" cy="120" r="7" fill="var(--copper)"/>
+        <text x="90" y="100" text-anchor="middle" class="lbl-lg">GB200 NVL72</text>
+        <text x="90" y="146" text-anchor="middle">Blackwell</text>
+        <text x="90" y="160" text-anchor="middle">192 GB · ~120 kW</text>
+        <text x="90" y="174" text-anchor="middle">1.44 EF FP4</text>
+        <text x="90" y="196" text-anchor="middle" fill="var(--ink-3)">shipping</text>
+      </g>
+
+      <g>
+        <circle cx="240" cy="120" r="7" fill="var(--copper)"/>
+        <text x="240" y="100" text-anchor="middle" class="lbl-lg">GB300 NVL72</text>
+        <text x="240" y="146" text-anchor="middle">Blackwell Ultra</text>
+        <text x="240" y="160" text-anchor="middle">288 GB · ~1,400 W/GPU</text>
+        <text x="240" y="174" text-anchor="middle">1.5× FP4</text>
+        <text x="240" y="196" text-anchor="middle" fill="var(--ink-3)">shipping</text>
+      </g>
+
+      <line x1="310" y1="120" x2="690" y2="120" stroke="var(--amber)" stroke-width="2" stroke-dasharray="6 5"/>
+
+      <g>
+        <circle cx="400" cy="120" r="7" fill="none" stroke="var(--amber)" stroke-width="2"/>
+        <text x="400" y="100" text-anchor="middle" class="lbl-lg">Vera Rubin NVL144</text>
+        <text x="400" y="146" text-anchor="middle">Rubin · HBM4</text>
+        <text x="400" y="160" text-anchor="middle">~3.6 EF FP4</text>
+        <text x="400" y="174" text-anchor="middle">144 dies = 72 packages</text>
+        <text x="400" y="196" text-anchor="middle" fill="var(--amber)">announced · 2H 2026</text>
+      </g>
+
+      <g>
+        <circle cx="550" cy="120" r="7" fill="none" stroke="var(--amber)" stroke-width="2"/>
+        <text x="550" y="100" text-anchor="middle" class="lbl-lg">Rubin Ultra NVL576</text>
+        <text x="550" y="196" text-anchor="middle" fill="var(--amber)">announced · 2027</text>
+      </g>
+
+      <g>
+        <circle cx="670" cy="120" r="7" fill="none" stroke="var(--amber)" stroke-width="2"/>
+        <text x="670" y="100" text-anchor="middle" class="lbl-lg">Feynman</text>
+        <text x="670" y="196" text-anchor="middle" fill="var(--amber)">announced</text>
+      </g>
+    </svg>
+  </Widget>
+
+  <div class="prose">
+    <h2 id="gb300">GB300, which is shipping</h2>
+
+    <L min={2}>
+      <p>
+        Blackwell Ultra keeps the rack shape and changes what is in the trays:
+        <S id="gb300-hbm" /> of HBM3e per GPU against 192 GB, <S id="gb300-power" /> per GPU
+        against roughly 1,200 W, and <S id="gb300-fp4" /> the FP4 throughput. Scale-out moves from
+        ConnectX-7 at <S id="cx7" bare /> to ConnectX-8 at <S id="cx8" bare />.<Cite ids="nv-gb300" />
+      </p>
+      <p>
+        The capacity increase is the consequential one. Fifty percent more HBM per GPU is fifty
+        percent more <a href="/inference#dynamo">KV cache and batch headroom</a> on the decode
+        pool, which is where memory-bound serving actually converts capacity into throughput.
+        NVIDIA reports <S id="mlperf-ultra" /> on MLPerf Training at 512-GPU
+        scale.<Cite ids="nv-devblog-mlperf" />
+      </p>
+    </L>
+
+    <Callout kind="caveat">
+      <p>
+        Per-GPU memory on Blackwell Ultra is quoted as both 279 GB and 288 GB depending on the
+        source — SKU and ECC accounting again. Shown here as <S id="gb300-hbm" /> with the range
+        attached, like every other figure the sources disagree about.
+      </p>
+    </Callout>
+
+    <h2 id="rubin">Vera Rubin, which is not</h2>
+
+    <p>
+      Announced for the second half of 2026: Rubin GPUs with HBM4, a Vera CPU, and roughly
+      <S id="rubin-fp4" /> of FP4 in an NVL144 rack.
+    </p>
+
+    <L min={2}>
+      <p>
+        The naming deserves a note, because it breaks the pattern the previous two generations set.
+        "NVL72" counted 72 GPU packages. "NVL144" counts 144 <em>dies</em> across 72 packages — the
+        same package count as today, with the die-per-package doubling now surfaced in the product
+        name. It is not a doubling of the NVLink domain's endpoint count, and reading it as one
+        will produce wrong capacity planning.
+      </p>
+      <p>
+        Rubin Ultra NVL576 is projected for 2027 and Feynman beyond that. These come from keynote
+        slides and supply-chain reporting rather than from datasheets, and this site does not
+        publish specifications for them.
+      </p>
+    </L>
+
+    <h2 id="power">The curve underneath</h2>
+
+    <p>
+      The through-line across every generation is not FLOPS. It is watts per rack, and it is the
+      constraint that will decide how far this architecture goes.
+    </p>
+
+    <L min={2}>
+      <p>
+        <S id="rack-power" /> today, against a worldwide mean rack density of
+        <S id="mean-rack" />.<Cite ids="uptime-2025" /> Schneider Electric's forward-looking figure
+        for the next generation is <S id="next-gen-power" /> per rack.<Cite ids="schneider" /> At
+        that density the facility, not the silicon, becomes the thing being designed: power
+        delivery, coolant volume, floor loading, and grid interaction all move onto the critical
+        path.
+      </p>
+      <p>
+        Everything this site describes about NVL72 — the busbar, the copper spine, the mandatory
+        liquid loop, the 1.36-tonne frame — is a set of answers to that curve at 120 kW. Each
+        subsequent generation is the same question asked again at a larger number.
+      </p>
+    </L>
+
+    <SpecTable
+      caption="Successors"
+      ids={['gb300-hbm', 'gb300-power', 'gb300-fp4', 'cx8', 'mlperf-ultra', 'rubin-fp4', 'next-gen-power']}
+    />
+
+    <Callout kind="caveat">
+      <p>
+        Every roadmap figure on this page is announced rather than measured, and is marked as such
+        wherever it appears. See <a href="/sources#announced">the announced-figures list</a> for
+        all of them in one place.
+      </p>
+    </Callout>
+  </div>
+</Base>

@@ -1,0 +1,259 @@
+---
+import Base from '../layouts/Base.astro';
+import S from '../components/S.astro';
+import T from '../components/T.astro';
+import L from '../components/L.astro';
+import Cite from '../components/Cite.astro';
+import Callout from '../components/Callout.astro';
+import Deeper from '../components/Deeper.astro';
+import Widget from '../components/Widget.astro';
+import SpecTable from '../components/SpecTable.astro';
+---
+<Base
+  title="Software & Inference"
+  description="Prefill is compute-bound, decode is memory-bound. Splitting them across a 72-GPU NVLink domain is the payoff — worth about 1.5× on MLPerf Inference v5.1."
+  kicker="Chapter 08"
+  heading="Software & Inference"
+  slug="/inference"
+>
+  <div class="prose">
+    <p class="lede">
+      Serving a language model is two different jobs wearing one coat. They have opposite
+      bottlenecks, they want different hardware ratios, and for years they were forced to share a
+      GPU anyway. A 72-GPU coherent domain is what makes separating them practical.
+    </p>
+
+    <h2 id="two-phases">Two phases, opposite bottlenecks</h2>
+
+    <L at={1}>
+      <p>
+        When you send a prompt to a language model, two things happen in sequence.
+      </p>
+      <p>
+        First it reads your whole prompt at once. That is a large, dense pile of arithmetic and it
+        keeps the chip's maths units busy — this phase is limited by how fast the GPU can compute.
+        Then it writes the answer one word at a time, and each word requires re-reading the model's
+        entire set of weights to produce a tiny amount of arithmetic. That phase is limited by how
+        fast the GPU can read memory, not by how fast it can compute.
+      </p>
+      <p>
+        Those are two different machines' worth of requirements. Running both on the same GPU means
+        neither gets what it wants.
+      </p>
+    </L>
+
+    <L min={2}>
+      <p>
+        <T id="prefill">Prefill</T> processes every prompt token in parallel: large GEMMs, high
+        arithmetic intensity, tensor-core-bound. It sets time-to-first-token.
+        <T id="decode">Decode</T> generates one token at a time, re-reading the full weight set and
+        the growing <T id="kv-cache">KV cache</T> per step. Its arithmetic intensity is close to
+        one, so it is memory-bandwidth-bound outright, and its only real lever is batching more
+        requests together to amortise those weight reads.
+      </p>
+      <p>
+        Co-locating them forces a compromise on every axis: batch composition, memory budget,
+        parallelism width, and scheduling. Worse, a prefill burst stalls the decode steps sharing
+        the GPU, which shows up directly as inter-token latency jitter — the thing interactive
+        serving is judged on.
+      </p>
+    </L>
+  </div>
+
+  <Widget
+    title="Where the GPU-seconds go"
+    hint="Change the request shape"
+    caption="An illustrative model, not a performance predictor: it assumes prefill throughput per GPU is a few thousand tokens per second and decode a few tens, then shows how the work ratio — and therefore the ideal GPU split — moves with request shape. The one measured figure on this page is the ~1.5× from MLPerf Inference v5.1."
+  >
+    <div data-disagg>
+      <svg class="diagram" viewBox="0 0 720 210" role="img" aria-label="Bar showing the split of GPU-seconds between prefill and decode, and the resulting allocation of 72 GPUs.">
+        <text x="0" y="16">GPU-seconds per request</text>
+        <rect x="0" y="26" width="720" height="30" rx="4" fill="var(--line)"/>
+        <rect x="0" y="26" width="200" height="30" rx="4" fill="var(--cyan)" data-bar-prefill/>
+        <text x="10" y="46" fill="#fff" data-out="pf-lbl">prefill</text>
+        <text x="710" y="46" text-anchor="end" fill="var(--ink)" data-out="dc-lbl">decode</text>
+
+        <text x="0" y="96">Balanced allocation of 72 GPUs</text>
+        <g data-alloc></g>
+
+        <text x="0" y="196" fill="var(--ink-3)" data-out="verdict"></text>
+      </svg>
+      <dl class="readout" style="margin-top:0.75rem">
+        <div><dt>Prefill share</dt><dd data-out="pf">33%</dd></div>
+        <div><dt>Decode share</dt><dd data-out="dc">67%</dd></div>
+        <div><dt>Prefill GPUs</dt><dd data-out="npf">24</dd></div>
+        <div><dt>Decode GPUs</dt><dd data-out="ndc">48</dd></div>
+      </dl>
+    </div>
+    <div slot="controls" class="controls-row">
+      <div class="ctl">
+        <label for="inp">Input tokens<output data-out="inp-lbl">32,768</output></label>
+        <input type="range" id="inp" data-inp min="0" max="100" value="78" />
+      </div>
+      <div class="ctl">
+        <label for="outp">Output tokens<output data-out="out-lbl">1,024</output></label>
+        <input type="range" id="outp" data-outp min="0" max="100" value="63" />
+      </div>
+    </div>
+  </Widget>
+
+  <div class="prose">
+    <h2 id="dynamo">Disaggregated serving</h2>
+
+    <L min={2}>
+      <p>
+        NVIDIA Dynamo runs the two phases on separate GPU pools and streams the KV cache between
+        them.<Cite ids="nv-dynamo" /> Each pool is then free to be configured for its own
+        bottleneck: prefill for throughput, decode for wide
+        <T id="expert-parallelism">expert parallelism</T> and large batches. On MLPerf Inference
+        v5.1, disaggregated serving on GB200 NVL72 reached <S id="disagg-gain" /> over aggregated
+        serving for Llama 3.1 405B interactive.<Cite ids={['mlcommons', 'nv-dynamo']} />
+      </p>
+      <p>
+        The reason this needs an NVL72 rather than any cluster is the KV cache transfer plus the
+        expert all-to-all. Moving a long-context KV cache from a prefill GPU to a decode GPU is a
+        large, latency-sensitive transfer sitting directly in the request path. Over InfiniBand it
+        is a cost you schedule around; over <S id="alltoall" /> of in-rack NVLink it is close to
+        free.
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        Wide expert parallelism is the second-order effect and arguably the larger one. Spreading a
+        <T id="moe">mixture-of-experts</T> model's experts across many GPUs cuts the weight memory
+        each GPU holds, which frees HBM for KV cache and larger batches, which is precisely what a
+        memory-bound decode phase needs. The cost is an all-to-all exchange on every layer whose
+        size grows with the number of participating GPUs.
+      </p>
+      <p>
+        That exchange is what makes wide EP unaffordable on a scale-out fabric and affordable here:
+        it stays inside the NVLink domain, where per-GPU egress is 900 GB/s rather than 50 or 100.
+        The 72-GPU domain is not incidental to disaggregated MoE serving; it is the precondition
+        for it.
+      </p>
+    </L>
+
+    <Callout kind="key">
+      <p>
+        The chain is worth stating end to end: a coherent 72-GPU domain makes wide expert
+        parallelism cheap → wide EP frees HBM on the decode pool → free HBM buys batch size →
+        batch size is the only lever a memory-bound phase has. That is how an interconnect
+        specification turns into tokens per second.
+      </p>
+    </Callout>
+
+    <h2 id="platform">The rest of the software story</h2>
+
+    <p>
+      Three pieces of plumbing matter enough to name.
+    </p>
+
+    <ul>
+      <li>
+        <strong>Topology awareness.</strong> <T id="nccl">NCCL</T> and CUDA know the NVLink
+        topology and pick collective algorithms accordingly — including using
+        <T id="sharp">SHARP</T> in-network reduction where it applies. Nothing about the fabric is
+        exposed as something you tune by hand.
+      </li>
+      <li>
+        <strong>Domain boundaries.</strong> <T id="mnnvl">MNNVL</T> and the IMEX service let GPU
+        memory be exported across OS domains; Kubernetes models this with a ComputeDomain resource
+        via the GPU Operator and DRA driver.<Cite ids="nv-mnnvl" /> The NVLink domain and the
+        scheduling domain are separate concepts.
+      </li>
+      <li>
+        <strong>Partitioning.</strong> <T id="mig">MIG</T> still slices a single GPU into isolated
+        instances — relevant for inference tenancy, irrelevant to the training story.
+      </li>
+    </ul>
+
+    <h2 id="numbers">Measured results</h2>
+
+    <SpecTable
+      caption="Published benchmark figures"
+      ids={['disagg-gain', 'mlperf-405b', 'mlperf-nvfp4', 'mlperf-ultra', 'inference-30x', 'moe-10x']}
+    />
+
+    <Callout kind="caveat">
+      <p>
+        The <S id="inference-30x" /> figure is widely quoted without its configuration. NVIDIA's
+        measured setup is TTL = 50 ms, FTL = 5 s, 32,768 input and 1,024 output tokens on
+        GPT-MoE-1.8T, comparing <em>64</em> Hopper GPUs over InfiniBand against <em>32</em>
+        Blackwell GPUs in an NVL72.<Cite ids="nv-gb200" /> It is a real result for a real workload
+        shape and it is not a like-for-like GPU count. Quote it with the footnote attached.
+      </p>
+    </Callout>
+
+    <Deeper title="Why reliability shows up as a serving concern">
+      <p>
+        Blackwell's <T id="ras">RAS engine</T> runs built-in self-tests and predicts failures so
+        that board replacement becomes a scheduled event. The reason this belongs in a chapter on
+        inference rather than one on hardware: the failure domain is the NVLink domain. Losing a
+        compute tray removes four GPUs from a 72-GPU fabric, and any job whose collectives span it
+        must be reformed. Designing serving topologies that degrade rather than stop — and knowing
+        which tray a replica lives on — is an operational discipline this density forces on you.
+      </p>
+    </Deeper>
+  </div>
+
+  <script>
+    const dis = document.querySelector<HTMLElement>('[data-disagg]');
+    if (dis) {
+      const fig = dis.closest('figure')!;
+      const NS = 'http://www.w3.org/2000/svg';
+      const out = (k: string) => fig.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+      const inp = fig.querySelector<HTMLInputElement>('[data-inp]')!;
+      const outp = fig.querySelector<HTMLInputElement>('[data-outp]')!;
+      const bar = dis.querySelector<SVGRectElement>('[data-bar-prefill]')!;
+      const alloc = dis.querySelector('[data-alloc]')!;
+
+      // Illustrative per-GPU rates. Prefill runs the prompt in parallel and is
+      // tensor-core-bound; decode walks one token at a time and is bandwidth-bound.
+      const PREFILL_TOK_S = 6000;
+      const DECODE_TOK_S = 45;
+
+      const logRange = (v: number, lo: number, hi: number) =>
+        Math.round(lo * Math.pow(hi / lo, v / 100));
+
+      const render = () => {
+        const I = logRange(Number(inp.value), 256, 131072);
+        const O = logRange(Number(outp.value), 32, 8192);
+        const wPre = I / PREFILL_TOK_S;
+        const wDec = O / DECODE_TOK_S;
+        const total = wPre + wDec;
+        const share = wPre / total;
+        const nPre = Math.max(1, Math.min(71, Math.round(72 * share)));
+        const nDec = 72 - nPre;
+
+        out('inp-lbl').textContent = I.toLocaleString();
+        out('out-lbl').textContent = O.toLocaleString();
+        out('pf').textContent = Math.round(share * 100) + '%';
+        out('dc').textContent = Math.round((1 - share) * 100) + '%';
+        out('npf').textContent = String(nPre);
+        out('ndc').textContent = String(nDec);
+        bar.setAttribute('width', String(Math.max(4, share * 720)));
+        out('pf-lbl').textContent = share > 0.12 ? 'prefill' : '';
+        out('dc-lbl').textContent = 'decode';
+
+        alloc.textContent = '';
+        for (let i = 0; i < 72; i++) {
+          const r = document.createElementNS(NS, 'rect');
+          r.setAttribute('x', String((i % 36) * 20));
+          r.setAttribute('y', String(106 + Math.floor(i / 36) * 26));
+          r.setAttribute('width', '16'); r.setAttribute('height', '20'); r.setAttribute('rx', '2');
+          r.setAttribute('fill', i < nPre ? 'var(--cyan)' : 'var(--gpu)');
+          r.setAttribute('opacity', '0.8');
+          alloc.appendChild(r);
+        }
+        out('verdict').textContent =
+          share > 0.5
+            ? `Prompt-heavy: most GPU time goes to prefill, so the pool skews ${nPre}:${nDec}. Aggregated serving would leave decode capacity idle.`
+            : `Generation-heavy: decode dominates at ${nDec} of 72 GPUs, and those GPUs want wide expert parallelism and the largest batch that fits.`;
+      };
+      inp.addEventListener('input', render);
+      outp.addEventListener('input', render);
+      render();
+    }
+  </script>
+</Base>

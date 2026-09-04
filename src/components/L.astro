@@ -1,0 +1,12 @@
+---
+/**
+ * Depth-gated block. `min` shows at that depth and above; `at` shows only at
+ * that exact depth (used when the same idea is phrased differently per level).
+ * Both render server-side and are hidden with CSS, so all depths stay in the
+ * DOM for crawlers and for readers without JavaScript.
+ */
+interface Props { min?: 1 | 2 | 3; at?: 1 | 2 | 3; inline?: boolean }
+const { min, at, inline = false } = Astro.props;
+const attrs = { 'data-min': min ? String(min) : undefined, 'data-at': at ? String(at) : undefined };
+---
+{inline ? <span class="lv-i" {...attrs}><slot /></span> : <div class="lv" {...attrs}><slot /></div>}

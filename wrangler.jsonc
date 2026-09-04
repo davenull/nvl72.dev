@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nvl72-dev",
+  "account_id": "e8f56d45a07e01fabf04045fa50e20ed",
+  "compatibility_date": "2026-09-01",
+
+  // Assets-only Worker: no "main" entry point, so there is no Worker script to
+  // invoke and no request is ever billed. See docs/hosting.md.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash"
+  },
+  // Custom domain. The zone must exist in this Cloudflare account; if it does
+  // not yet, comment this out and the Worker still serves on *.workers.dev.
+  "routes": [
+    { "pattern": "nvl72.dev", "custom_domain": true },
+    { "pattern": "www.nvl72.dev", "custom_domain": true }
+  ],
+
+  "observability": { "enabled": true }
+}

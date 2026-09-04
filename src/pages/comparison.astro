@@ -1,0 +1,275 @@
+---
+import Base from '../layouts/Base.astro';
+import S from '../components/S.astro';
+import T from '../components/T.astro';
+import L from '../components/L.astro';
+import Callout from '../components/Callout.astro';
+import Deeper from '../components/Deeper.astro';
+import Widget from '../components/Widget.astro';
+---
+<Base
+  title="NVL72 vs HGX vs DGX"
+  description="Scale-up against scale-out, what actually differs between a rack-scale system and an 8-GPU server, and a roofline that explains why bandwidth beats FLOPS here."
+  kicker="Chapter 09"
+  heading="NVL72 vs HGX vs DGX"
+  slug="/comparison"
+>
+  <div class="prose">
+    <p class="lede">
+      The differences that matter are not on the spec sheet's first page. Per-GPU NVLink bandwidth
+      is the same in both designs. What changed is how many GPUs that bandwidth reaches, what sits
+      between the GPU and its host, and what you are actually buying.
+    </p>
+
+    <h2 id="what-differs">What actually differs</h2>
+
+    <div class="spec-table bleed">
+      <table>
+        <caption>Rack-scale versus server-scale</caption>
+        <thead>
+          <tr>
+            <th scope="col" style="font-weight:600;color:var(--ink)">&nbsp;</th>
+            <th scope="col" style="font-weight:600;color:var(--ink)">GB200 NVL72</th>
+            <th scope="col" style="font-weight:600;color:var(--ink)">HGX / DGX 8-GPU node</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">GPUs in one NVLink domain</th><td>72</td><td>8</td></tr>
+          <tr><th scope="row">NVLink bandwidth per GPU</th><td>1.8 TB/s</td><td>1.8 TB/s</td></tr>
+          <tr><th scope="row">Host CPU</th><td>Grace, Arm Neoverse V2</td><td>x86</td></tr>
+          <tr><th scope="row">CPU ↔ GPU link</th><td>NVLink-C2C, 900 GB/s, coherent</td><td>PCIe</td></tr>
+          <tr><th scope="row">Pooled HBM in the domain</th><td>~13.5 TB</td><td>~1.5 TB</td></tr>
+          <tr><th scope="row">Cooling</th><td>Liquid, mandatory</td><td>Air or liquid</td></tr>
+          <tr><th scope="row">Power delivery</th><td>Rack busbar, shared</td><td>Per-server PSUs</td></tr>
+          <tr><th scope="row">Unit of purchase</th><td>Rack, or Superchip</td><td>Server</td></tr>
+          <tr><th scope="row">Unit of integration</th><td>The rack</td><td>The baseboard</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <L min={2}>
+      <p>
+        Read the first two rows together and the design becomes clear. Per-GPU NVLink bandwidth did
+        not change. What changed is that the same bandwidth now reaches 72 peers instead of 8, and
+        the pooled memory those peers can address grew by the same factor to
+        <S id="hbm-total" />. NVL72 is not a faster interconnect; it is the same interconnect
+        stretched over nine times as many endpoints.
+      </p>
+      <p>
+        The other structural change is on the host side. Replacing x86-over-PCIe with
+        Grace-over-<T id="nvlink-c2c">NVLink-C2C</T> turns host memory from a staging area into a
+        genuine second tier of the same coherent address space — which is why the rack's
+        <S id="mem-total" /> of unified memory is quoted as a single figure rather than as HBM plus
+        something else.
+      </p>
+    </L>
+
+    <Callout kind="myth">
+      <p>
+        <strong>"You can rent one GPU from it."</strong> Not in the way you rent an A100. These are
+        sold and deployed at Superchip or rack granularity, and the value proposition is the domain
+        rather than the device. A single Blackwell GPU detached from the fabric is a fine GPU and a
+        poor reason to have built any of this.
+      </p>
+    </Callout>
+
+    <h2 id="roofline">Why bandwidth, not FLOPS</h2>
+
+    <p>
+      The <T id="roofline">roofline</T> model says a kernel's achievable throughput is capped by
+      either arithmetic or by data movement, whichever binds first, and that which one binds
+      depends on a single property of the kernel: how many FLOPs it performs per byte it moves.
+    </p>
+  </div>
+
+  <Widget
+    title="Roofline"
+    hint="Drag the intensity, or switch which bandwidth binds"
+    caption="Log–log. The sloped section is bandwidth-bound, the flat section compute-bound, and the corner is the arithmetic intensity a kernel needs before FLOPS is the constraint. Ceiling is dense FP4 per GPU; switching the bandwidth to NVLink or InfiniBand shows the same argument one tier out, where the operand is a message rather than a cache line."
+  >
+    <div data-roof>
+      <svg class="diagram" viewBox="0 0 720 340" role="img"
+        aria-label="Roofline plot of attainable throughput against arithmetic intensity, with markers for decode, attention prefill and large GEMM workloads.">
+        <g data-plot></g>
+      </svg>
+      <dl class="readout" style="margin-top:0.75rem">
+        <div><dt>Arithmetic intensity</dt><dd data-out="ai">2 FLOP/byte</dd></div>
+        <div><dt>Attainable</dt><dd data-out="att">16 TFLOPS</dd></div>
+        <div><dt>Share of peak</dt><dd data-out="pct">0.2%</dd></div>
+        <div><dt>Bound by</dt><dd data-out="bound">memory</dd></div>
+      </dl>
+      <p data-out="note" style="margin:0.9rem 0 0;font-size:0.875rem;color:var(--ink-2)"></p>
+    </div>
+    <div slot="controls" class="controls-row">
+      <div class="ctl">
+        <label for="ai">Arithmetic intensity<output data-out="ai-lbl">2 FLOP/byte</output></label>
+        <input type="range" id="ai" data-ai min="0" max="100" value="18" />
+      </div>
+      <div class="seg" role="group" aria-label="Which bandwidth binds">
+        <button type="button" data-bw="hbm" aria-pressed="true">HBM3e · 8 TB/s</button>
+        <button type="button" data-bw="nvlink" aria-pressed="false">NVLink · 900 GB/s</button>
+        <button type="button" data-bw="ib" aria-pressed="false">InfiniBand · 100 GB/s</button>
+      </div>
+    </div>
+  </Widget>
+
+  <div class="prose">
+    <L min={2}>
+      <p>
+        Put Blackwell's numbers in: about <S id="gpu-fp4" /> of sparse FP4, so roughly 10 PFLOPS
+        dense, against <S id="hbm-bw" /> of HBM. The ridge point lands north of a thousand FLOPs
+        per byte. Dense GEMM with large tiles clears it. <T id="decode">Decode</T>, at an
+        arithmetic intensity near one, is three orders of magnitude below it and will never touch
+        the flat part of the roof no matter how many FLOPS the chip has.
+      </p>
+      <p>
+        This is the whole justification for the rack. Buying more FLOPS does nothing for a
+        bandwidth-bound phase. Buying more bandwidth — and, crucially, more <em>places to spread
+        the working set</em> so that each GPU reads less — does. A 72-GPU coherent domain is a
+        bandwidth purchase disguised as a compute purchase.
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        The version of this argument that matters at rack scale replaces HBM bandwidth with fabric
+        bandwidth and cache lines with messages. Switch the widget to NVLink and the ridge point
+        drops by roughly an order of magnitude; switch it to InfiniBand and it drops again. Any
+        model dimension whose per-byte arithmetic falls below the ridge for a given tier is a
+        dimension that tier cannot afford to carry.
+      </p>
+      <p>
+        Run that test on an MoE layer's expert all-to-all — a pure data movement with essentially
+        no arithmetic attached — and it fails at every tier. It only becomes affordable when the
+        bandwidth in the denominator is 900 GB/s per GPU rather than 50 or 100, which is the
+        argument <a href="/inference">the inference chapter</a> makes in throughput terms.
+      </p>
+    </L>
+
+    <Deeper title="Scale-up and scale-out, stated once">
+      <p>
+        <T id="scale-up">Scale-up</T> makes one machine larger: NVLink, coherent memory, load/store
+        semantics, and a hard limit set by physics and power. <em>Scale-out</em> adds more machines:
+        InfiniBand or Ethernet, message passing, and a limit set by money and floor space.
+      </p>
+      <p>
+        Every generation of this hardware is an argument about where the boundary between them
+        should sit. NVL72's answer is "at the rack". <a href="/roadmap">The roadmap</a> is a series
+        of proposals to move it further out — and a matching series of power figures explaining
+        what that costs.
+      </p>
+    </Deeper>
+  </div>
+
+  <script>
+    const roof = document.querySelector<HTMLElement>('[data-roof]');
+    if (roof) {
+      const fig = roof.closest('figure')!;
+      const NS = 'http://www.w3.org/2000/svg';
+      const plot = roof.querySelector('[data-plot]')!;
+      const out = (k: string) => fig.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+      const slider = fig.querySelector<HTMLInputElement>('[data-ai]')!;
+      const el = (n: string, a: Record<string, string | number>) => {
+        const e = document.createElementNS(NS, n);
+        for (const k in a) e.setAttribute(k, String(a[k]));
+        return e;
+      };
+
+      const PEAK = 10e15;                 // dense FP4 per GPU, FLOPS
+      const BW: Record<string, { label: string; bw: number; note: string }> = {
+        hbm: { label: 'HBM3e', bw: 8e12,
+          note: 'The classic single-GPU roofline. The ridge sits above 1,000 FLOP/byte, so only large dense GEMMs reach the flat roof.' },
+        nvlink: { label: 'NVLink 5 egress', bw: 900e9,
+          note: 'The same argument one tier out: the operand is now a message crossing the fabric, not a cache line. The ridge drops by roughly an order of magnitude, which is why a coherent 72-GPU domain can carry traffic a network cannot.' },
+        ib: { label: 'InfiniBand', bw: 100e9,
+          note: 'Across racks. The ridge drops again, and any exchange with little arithmetic attached — an expert all-to-all, a KV cache transfer — becomes something you schedule around rather than something you simply do.' },
+      };
+      let mode = 'hbm';
+
+      const X0 = 56, X1 = 700, Y0 = 24, Y1 = 280;
+      const AI_MIN = 0.1, AI_MAX = 1e5;
+      const F_MIN = 1e11, F_MAX = 2e16;
+      const lx = (ai: number) => X0 + (Math.log10(ai / AI_MIN) / Math.log10(AI_MAX / AI_MIN)) * (X1 - X0);
+      const ly = (f: number) => Y1 - (Math.log10(f / F_MIN) / Math.log10(F_MAX / F_MIN)) * (Y1 - Y0);
+      const aiFromSlider = () => AI_MIN * Math.pow(AI_MAX / AI_MIN, Number(slider.value) / 100);
+      const fmtF = (f: number) => f >= 1e15 ? (f / 1e15).toFixed(1) + ' PFLOPS' : f >= 1e12 ? (f / 1e12).toFixed(1) + ' TFLOPS' : (f / 1e9).toFixed(0) + ' GFLOPS';
+      const fmtAI = (a: number) => a >= 100 ? Math.round(a).toLocaleString() : a.toFixed(1);
+
+      const MARKS = [
+        { ai: 1.2, label: 'decode' },
+        { ai: 60, label: 'attention prefill' },
+        { ai: 2500, label: 'large GEMM' },
+      ];
+
+      const render = () => {
+        const bw = BW[mode].bw;
+        const ridge = PEAK / bw;
+        const ai = aiFromSlider();
+        const att = Math.min(PEAK, bw * ai);
+
+        plot.textContent = '';
+        // grid + axes
+        for (const d of [0.1, 1, 10, 100, 1e3, 1e4, 1e5]) {
+          plot.appendChild(el('line', { x1: lx(d), y1: Y0, x2: lx(d), y2: Y1, class: 'grid-line' }));
+          const t = el('text', { x: lx(d), y: Y1 + 16, 'text-anchor': 'middle' });
+          t.textContent = d >= 1000 ? d / 1000 + 'k' : String(d);
+          plot.appendChild(t);
+        }
+        for (const f of [1e12, 1e13, 1e14, 1e15, 1e16]) {
+          plot.appendChild(el('line', { x1: X0, y1: ly(f), x2: X1, y2: ly(f), class: 'grid-line' }));
+          const t = el('text', { x: X0 - 8, y: ly(f) + 4, 'text-anchor': 'end' });
+          t.textContent = fmtF(f).replace(/\.0/, '');
+          plot.appendChild(t);
+        }
+        plot.appendChild(el('line', { x1: X0, y1: Y0, x2: X0, y2: Y1, class: 'axis' }));
+        plot.appendChild(el('line', { x1: X0, y1: Y1, x2: X1, y2: Y1, class: 'axis' }));
+        const xl = el('text', { x: (X0 + X1) / 2, y: Y1 + 40, 'text-anchor': 'middle' });
+        xl.textContent = 'arithmetic intensity — FLOP per byte';
+        plot.appendChild(xl);
+
+        // roof
+        plot.appendChild(el('path', {
+          d: `M ${lx(AI_MIN)} ${ly(Math.max(F_MIN, bw * AI_MIN))} L ${lx(ridge)} ${ly(PEAK)} L ${lx(AI_MAX)} ${ly(PEAK)}`,
+          fill: 'none', stroke: 'var(--copper)', 'stroke-width': 2.5,
+        }));
+        plot.appendChild(el('line', { x1: lx(ridge), y1: ly(PEAK), x2: lx(ridge), y2: Y1,
+          stroke: 'var(--copper)', 'stroke-width': 1, 'stroke-dasharray': '3 4', opacity: 0.6 }));
+        const rl = el('text', { x: lx(ridge), y: Y0 - 6, 'text-anchor': 'middle', fill: 'var(--copper)' });
+        rl.textContent = `ridge ${fmtAI(ridge)}`;
+        plot.appendChild(rl);
+
+        // workload markers
+        for (const m of MARKS) {
+          const y = ly(Math.min(PEAK, bw * m.ai));
+          plot.appendChild(el('circle', { cx: lx(m.ai), cy: y, r: 3.5, fill: 'var(--ink-3)' }));
+          const t = el('text', { x: lx(m.ai), y: y - 9, 'text-anchor': 'middle', fill: 'var(--ink-3)' });
+          t.textContent = m.label;
+          plot.appendChild(t);
+        }
+
+        // cursor
+        plot.appendChild(el('circle', { cx: lx(ai), cy: ly(att), r: 6, fill: 'var(--gpu)' }));
+        plot.appendChild(el('line', { x1: lx(ai), y1: ly(att), x2: lx(ai), y2: Y1,
+          stroke: 'var(--gpu)', 'stroke-width': 1, 'stroke-dasharray': '2 3' }));
+
+        const bound = ai < ridge ? 'memory' : 'compute';
+        out('ai').textContent = fmtAI(ai) + ' FLOP/byte';
+        out('ai-lbl').textContent = fmtAI(ai) + ' FLOP/byte';
+        out('att').textContent = fmtF(att);
+        out('pct').textContent = (att / PEAK * 100).toFixed(att / PEAK < 0.01 ? 2 : 1) + '%';
+        out('bound').textContent = bound;
+        out('note').textContent = BW[mode].note;
+      };
+
+      slider.addEventListener('input', render);
+      fig.querySelectorAll<HTMLButtonElement>('[data-bw]').forEach((b) =>
+        b.addEventListener('click', () => {
+          mode = b.dataset.bw!;
+          fig.querySelectorAll<HTMLButtonElement>('[data-bw]').forEach((o) =>
+            o.setAttribute('aria-pressed', String(o === b)));
+          render();
+        }));
+      render();
+    }
+  </script>
+</Base>

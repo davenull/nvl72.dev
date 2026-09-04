@@ -1,0 +1,21 @@
+---
+import Base from '../layouts/Base.astro';
+import { numbered } from '../data/chapters';
+---
+<Base title="Not found" description="That page does not exist on nvl72.dev." kicker="404" heading="No such page">
+  <div class="prose">
+    <p class="lede">
+      That address does not exist here. The chapters are below — the first one explains what the
+      whole site is about.
+    </p>
+    <nav class="chapter-index bleed" aria-label="All chapters">
+      {numbered.map((c) => (
+        <a href={c.slug}>
+          <span class="n">{String(c.n).padStart(2, '0')}</span>
+          <span class="ttl">{c.title}</span>
+          <span class="blurb">{c.blurb}</span>
+        </a>
+      ))}
+    </nav>
+  </div>
+</Base>
