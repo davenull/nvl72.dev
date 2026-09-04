@@ -57,7 +57,7 @@ import SpecTable from '../components/SpecTable.astro';
 
   <Widget
     title="Fabric explorer"
-    hint="Hover a GPU to trace its 18 links"
+    hint="Hover a GPU · click to keep it"
     caption="Each of a GPU's 18 NVLink ports terminates on a different NVSwitch ASIC, so all 18 are usable at once toward any set of peers. Drawn as 18 trays of four GPUs against 9 switch trays of two ASICs; link lines are schematic, the copper spine carries over 5,000 of them."
   >
     <div data-fabric>
@@ -217,6 +217,7 @@ import SpecTable from '../components/SpecTable.astro';
 
       const TOP = 26, ROW = 21, GW = 15, GH = 13;
       const gpuPos: { x: number; y: number; tray: number; i: number }[] = [];
+      const gpuRects: SVGRectElement[] = [];
       for (let t = 0; t < 18; t++) {
         const y = TOP + t * ROW;
         gGpu.appendChild(el('text', { x: 8, y: y + 10, 'font-size': 9, 'data-tray-label': t }))
@@ -227,6 +228,7 @@ import SpecTable from '../components/SpecTable.astro';
             'data-gpu': t * 4 + i, tabindex: 0, role: 'button',
             'aria-label': `GPU ${t * 4 + i + 1}, tray ${t + 1}` });
           gGpu.appendChild(r);
+          gpuRects.push(r as SVGRectElement);
           gpuPos.push({ x: x + GW, y: y + GH / 2, tray: t, i });
         }
       }
@@ -260,6 +262,29 @@ import SpecTable from '../components/SpecTable.astro';
       const trayLabels = [...gGpu.querySelectorAll<SVGTextElement>('[data-tray-label]')];
       const swRects = [...gSw.querySelectorAll<SVGRectElement>('[data-sw]')];
 
+      /**
+       * Which GPU a click has fixed in place, if any. Hovering still previews
+       * any GPU; leaving the drawing comes back to this one.
+       */
+      let pinned: number | null = null;
+
+      // Drawn as its own element on top rather than as a stroke on the GPU
+      // rect: a pinned GPU is muted while you preview another, and opacity on
+      // the rect would take its ring down with it.
+      const pin = el('rect', {
+        fill: 'none', stroke: 'var(--copper)', 'stroke-width': 1.5, rx: 4, visibility: 'hidden',
+      });
+      gGpu.appendChild(pin);
+      const placePin = () => {
+        if (pinned === null) { pin.setAttribute('visibility', 'hidden'); return; }
+        const r = gpuRects[pinned];
+        pin.setAttribute('x', String(Number(r.getAttribute('x')) - 3));
+        pin.setAttribute('y', String(Number(r.getAttribute('y')) - 3));
+        pin.setAttribute('width', String(GW + 6));
+        pin.setAttribute('height', String(GH + 6));
+        pin.setAttribute('visibility', 'visible');
+      };
+
       const select = (g: number | null) => {
         // The selected GPU is left alone and its 71 peers mute back. The
         // switch column stays lit on purpose: the whole claim of this figure
@@ -273,25 +298,37 @@ import SpecTable from '../components/SpecTable.astro';
           t.setAttribute('opacity', g === null || own ? '1' : MUTED);
         }
         for (const r of swRects) r.setAttribute('opacity', g === null ? '0.9' : '1');
+        placePin();
         if (g === null) { draw([], 0); out('sel').textContent = '—'; return; }
         draw([g], 0.75);
-        out('sel').textContent = `GPU ${g + 1} · tray ${gpuPos[g].tray + 1}`;
+        out('sel').textContent =
+          `GPU ${g + 1} · tray ${gpuPos[g].tray + 1}${g === pinned ? ' · pinned' : ''}`;
       };
 
       /** "All links" has no single subject, so nothing is muted. */
       const showAll = () => {
+        pinned = null;
+        placePin();
         gGpu.querySelectorAll<SVGRectElement>('[data-gpu]').forEach((r) => r.setAttribute('opacity', '0.55'));
         for (const t of trayLabels) t.setAttribute('opacity', '1');
         for (const r of swRects) r.setAttribute('opacity', '0.9');
         draw([...Array(72).keys()], 0.045);
         out('sel').textContent = 'all 72';
       };
-      gGpu.querySelectorAll<SVGRectElement>('[data-gpu]').forEach((r) => {
-        const g = Number(r.dataset.gpu);
+      const togglePin = (g: number) => {
+        pinned = pinned === g ? null : g;
+        select(pinned ?? g);
+      };
+      gpuRects.forEach((r, g) => {
         r.style.cursor = 'pointer';
         r.addEventListener('mouseenter', () => select(g));
         r.addEventListener('focus', () => select(g));
-        r.addEventListener('click', () => select(g));
+        r.addEventListener('click', () => togglePin(g));
+        r.addEventListener('keydown', (e) => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          togglePin(g);
+        });
       });
 
       let mode = 'one';
@@ -303,11 +340,11 @@ import SpecTable from '../components/SpecTable.astro';
           if (mode === 'all') {
             showAll();
           } else {
-            select(0);
+            select(pinned ?? 0);
           }
         });
       });
-      svg.addEventListener('mouseleave', () => { if (mode === 'one') select(0); });
+      svg.addEventListener('mouseleave', () => { if (mode === 'one') select(pinned ?? 0); });
       select(0);
     }
 
