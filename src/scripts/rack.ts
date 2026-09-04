@@ -36,6 +36,10 @@ export interface RackPart {
 
 export interface RackHandle {
   setExplode(v: number): void;
+  /** Move the look-at point up and down the rack. 0 = floor, 1 = crown. */
+  setHeight(v: number): void;
+  /** Where the look-at point currently sits, 0–1, for syncing a control to it. */
+  getHeight(): number;
   setHighlight(id: string | null): void;
   focus(id: string | null, opts?: { explode?: number }): void;
   resetView(): void;
@@ -400,6 +404,16 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
 
   /* ── Camera / controls (hand-rolled: no OrbitControls import) ───────── */
   const target = new THREE.Vector3(0, 0, 0);
+  /**
+   * Vertical position of the look-at point. Orbiting alone cannot get you to
+   * the top or bottom of a two-metre rack from a sensible distance, so this is
+   * driven separately by a slider beside the canvas.
+   */
+  const PAN_RANGE = H * 0.42;
+  let panY = 0;
+  let panYGoal = 0;
+  const heightToPan = (v: number) => (clamp(v, 0, 1) - 0.5) * 2 * PAN_RANGE;
+  const panToHeight = (y: number) => clamp(y / (2 * PAN_RANGE) + 0.5, 0, 1);
   /** Distance at which the whole rack fits the viewport with a little padding. */
   function fitRadius() {
     const vFov = (camera.fov * Math.PI) / 180;
@@ -588,6 +602,8 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
     view.phi += (goal.phi - view.phi) * 0.14;
     view.radius += (goal.radius - view.radius) * 0.12;
     explode += (explodeGoal - explode) * 0.16;
+    panY += (panYGoal - panY) * 0.14;
+    target.y = panY;
     place();
 
     for (const p of parts) {
@@ -614,6 +630,8 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
 
   return {
     setExplode(v) { explodeGoal = clamp(v, 0, 1); },
+    setHeight(v) { panYGoal = heightToPan(v); },
+    getHeight() { return panToHeight(panYGoal); },
     setHighlight(id) { selected = id; applyDim(); },
     focus(id, o) {
       selected = id;
@@ -621,19 +639,18 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
       if (o?.explode !== undefined) explodeGoal = o.explode;
       const p = id ? focusAnchor.get(id) : null;
       if (p) {
-        const c = anchorOf(p);
-        target.set(0, c.y, 0);
+        panYGoal = clamp(anchorOf(p).y, -PAN_RANGE, PAN_RANGE);
         goal.radius = fitRadius() * 0.6;
         goal.theta = 0.75;
         goal.phi = 1.35;
       } else {
-        target.set(0, 0, 0);
+        panYGoal = 0;
         goal.radius = fitRadius();
       }
     },
     resetView() {
       userZoomed = false;
-      target.set(0, 0, 0);
+      panYGoal = 0;
       goal.theta = 0.66; goal.phi = 1.24; goal.radius = fitRadius();
       explodeGoal = 0; selected = null; hovered = null; applyDim();
     },

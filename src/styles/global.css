@@ -616,8 +616,60 @@ code { font-family: var(--mono); font-size: 0.875em; background: var(--bg-sunk);
 .diagram [data-part],
 .diagram [data-context],
 .diagram [data-gpu],
-.diagram [data-tray-label] { transition: opacity 140ms ease; }
+.diagram [data-tray-label],
+.diagram [data-unit],
+.diagram [data-mark] { transition: opacity 140ms ease; }
 .diagram [data-part]:focus-visible,
-.diagram [data-gpu]:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+.diagram [data-gpu]:focus-visible,
+.diagram [data-unit]:focus-visible,
+.diagram [data-mark]:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
 /* The pin marker is the persistent state; the focus ring is transient. */
 .diagram [data-gpu]:focus:not(:focus-visible) { outline: none; }
+
+/* ── Rack camera-height control ─────────────────────────────────────── */
+
+.rack-height {
+  position: absolute; right: 0.6rem; top: 1rem; bottom: 1rem;
+  display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+  font-family: var(--mono); font-size: 0.625rem; color: var(--ink-3);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  pointer-events: none;
+}
+.rack-height input[type='range'] {
+  flex: 1; width: 1.5rem; margin: 0; pointer-events: auto;
+  /* `orient` covers Firefox; writing-mode is what everything else honours.
+     rtl puts the maximum — the top of the rack — at the top of the track. */
+  writing-mode: vertical-lr;
+  direction: rtl;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  /* Deliberately not accent-color: that fills the whole track, and a
+     two-thirds-full copper bar beside the model reads as a progress meter. */
+}
+.rack-height input[type='range']::-webkit-slider-runnable-track {
+  width: 3px; border-radius: 2px;
+  background: var(--line-strong);
+}
+.rack-height input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--copper);
+  border: 2px solid var(--panel);
+  margin-left: -5px;
+  cursor: ns-resize;
+}
+.rack-height input[type='range']::-moz-range-track {
+  width: 3px; border-radius: 2px; background: var(--line-strong);
+}
+.rack-height input[type='range']::-moz-range-thumb {
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--copper); border: 2px solid var(--panel);
+  cursor: ns-resize;
+}
+.rack-height input[type='range']:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--copper); outline-offset: 2px; }
+
+@media (max-width: 720px) {
+  /* Too narrow to give up horizontal room, and the tour covers the same ground. */
+  .rack-height { display: none; }
+}

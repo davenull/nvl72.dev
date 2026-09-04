@@ -28,7 +28,7 @@ import SpecTable from '../components/SpecTable.astro';
 
   <Widget
     title="Zoom out"
-    hint="Pick a tier"
+    hint="Pick a tier · hover a unit, click to keep it"
     caption="Per-GPU egress bandwidth at each tier. NVLink's 1.8 TB/s headline is bidirectional, so one direction is 900 GB/s; scale-out figures are SuperNIC line rates per GPU. The ratio, not the absolute number, is what shapes a parallelism strategy."
   >
     <div data-tiers>
@@ -41,6 +41,7 @@ import SpecTable from '../components/SpecTable.astro';
         <div><dt>Fabric</dt><dd data-out="fabric">NVLink 5</dd></div>
         <div><dt>Egress per GPU</dt><dd data-out="bw">900 GB/s</dd></div>
         <div><dt>Versus in-rack</dt><dd data-out="ratio">1.0×</dd></div>
+        <div><dt>Highlighted</dt><dd data-out="unit">—</dd></div>
       </dl>
       <p data-out="note" style="margin:1rem 0 0;font-size:0.875rem;color:var(--ink-2)"></p>
     </div>
@@ -176,8 +177,15 @@ import SpecTable from '../components/SpecTable.astro';
         } else if (tier === 'pod') {
           for (let r = 0; r < 8; r++) {
             const x = 100 + r * 68;
-            for (let i = 0; i < 18; i++) rack(x, 60 + i * 8, 44, 5.5, i >= 5 && i < 14 ? 'var(--switch)' : 'var(--gpu)', 0.7);
-            topo.appendChild(el('line', { x1: x + 22, y1: 52, x2: x + 22, y2: 34, stroke: 'var(--cyan)', 'stroke-width': 1.5 }));
+            const g = el('g', { 'data-unit': r, tabindex: 0, role: 'button',
+              'aria-label': `Rack ${r + 1} of 8` }) as SVGGElement;
+            (g as SVGGElement).style.cursor = 'pointer';
+            topo.appendChild(g);
+            for (let i = 0; i < 18; i++) {
+              g.appendChild(el('rect', { x, y: 60 + i * 8, width: 44, height: 5.5, rx: 2,
+                fill: i >= 5 && i < 14 ? 'var(--switch)' : 'var(--gpu)', opacity: 0.7 }));
+            }
+            g.appendChild(el('line', { x1: x + 22, y1: 52, x2: x + 22, y2: 34, stroke: 'var(--cyan)', 'stroke-width': 1.5 }));
           }
           topo.appendChild(el('rect', { x: 100, y: 22, width: 524, height: 12, rx: 3, fill: 'var(--cyan)', opacity: 0.55 }));
           label(362, 18, 'InfiniBand / Spectrum-X leaf');
@@ -186,8 +194,15 @@ import SpecTable from '../components/SpecTable.astro';
           for (let p = 0; p < 16; p++) {
             const x = 60 + (p % 8) * 78;
             const y = p < 8 ? 60 : 150;
-            topo.appendChild(el('rect', { x, y, width: 60, height: 52, rx: 4, fill: 'var(--gpu)', opacity: 0.25, stroke: 'var(--line-strong)' }));
-            for (let r = 0; r < 8; r++) rack(x + 4 + r * 7, y + 8, 4.5, 36, 'var(--gpu)', 0.7);
+            const g = el('g', { 'data-unit': p, tabindex: 0, role: 'button',
+              'aria-label': `SuperPOD ${p + 1} of 16` }) as SVGGElement;
+            (g as SVGGElement).style.cursor = 'pointer';
+            topo.appendChild(g);
+            g.appendChild(el('rect', { x, y, width: 60, height: 52, rx: 4, fill: 'var(--gpu)', opacity: 0.25, stroke: 'var(--line-strong)' }));
+            for (let r = 0; r < 8; r++) {
+              g.appendChild(el('rect', { x: x + 4 + r * 7, y: y + 8, width: 4.5, height: 36, rx: 2,
+                fill: 'var(--gpu)', opacity: 0.7 }));
+            }
           }
           topo.appendChild(el('rect', { x: 60, y: 122, width: 600, height: 10, rx: 3, fill: 'var(--cyan)', opacity: 0.5 }));
           label(360, 22, '16 SuperPODs · 128 racks');
@@ -195,9 +210,54 @@ import SpecTable from '../components/SpecTable.astro';
         }
       };
 
-      const apply = (tier: keyof typeof DATA) => {
+      const MUTED = '0.1';
+      let tier: keyof typeof DATA = 'rack';
+      /** Which unit a click has fixed in place within the current tier. */
+      let pinnedUnit: number | null = null;
+
+      const unitName = (i: number) =>
+        tier === 'pod' ? `Rack ${i + 1} of 8` : `SuperPOD ${i + 1} of 16`;
+      const unitNote = (i: number) =>
+        tier === 'pod'
+          ? `Inside rack ${i + 1} every GPU has 900 GB/s to all 71 others. Reaching the seven muted racks means dropping to the leaf fabric above — an order of magnitude less per GPU. That step is what a parallelism strategy is really choosing between.`
+          : `One SuperPOD: 8 racks, 576 GPUs. Its own racks are one InfiniBand hop apart; the fifteen muted pods are further still. Nothing about this tier is coherent memory — it is all message passing.`;
+
+      /** Light one unit and mute its peers. The leaf fabric stays lit: it is
+       *  what the muted units are reached over, not a competing object. */
+      const highlight = (i: number | null) => {
+        const units = [...topo.querySelectorAll<SVGGElement>('[data-unit]')];
+        for (const g of units) {
+          g.setAttribute('opacity', i === null || Number(g.dataset.unit) === i ? '1' : MUTED);
+        }
+        const pinnedHere = i !== null && i === pinnedUnit;
+        out('unit').textContent = i === null ? '—' : unitName(i) + (pinnedHere ? ' · pinned' : '');
+        out('note').textContent = i === null ? DATA[tier].note : unitNote(i);
+      };
+
+      const wireUnits = () => {
+        for (const g of topo.querySelectorAll<SVGGElement>('[data-unit]')) {
+          const i = Number(g.dataset.unit);
+          const toggle = () => { pinnedUnit = pinnedUnit === i ? null : i; highlight(pinnedUnit ?? i); };
+          g.addEventListener('mouseenter', () => highlight(i));
+          g.addEventListener('focus', () => highlight(i));
+          g.addEventListener('click', toggle);
+          g.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            e.preventDefault();
+            toggle();
+          });
+        }
+        // Leaving the drawing falls back to the pin, not to nothing.
+        topo.closest('svg')?.addEventListener('mouseleave', () => highlight(pinnedUnit));
+      };
+
+      const apply = (next: keyof typeof DATA) => {
+        tier = next;
+        pinnedUnit = null;
         const d = DATA[tier];
         draw(tier);
+        wireUnits();
+        out('unit').textContent = '—';
         out('domain').textContent = d.domain;
         out('gpus').textContent = d.gpus;
         out('fabric').textContent = d.fabric;

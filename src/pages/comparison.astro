@@ -84,7 +84,7 @@ import Widget from '../components/Widget.astro';
 
   <Widget
     title="Roofline"
-    hint="Drag the intensity, or switch which bandwidth binds"
+    hint="Drag the intensity · hover a workload, click to keep it"
     caption="Log–log. The sloped section is bandwidth-bound, the flat section compute-bound, and the corner is the arithmetic intensity a kernel needs before FLOPS is the constraint. Ceiling is dense FP4 per GPU; switching the bandwidth to NVLink or InfiniBand shows the same argument one tier out, where the operand is a message rather than a cache line."
   >
     <div data-roof>
@@ -97,6 +97,7 @@ import Widget from '../components/Widget.astro';
         <div><dt>Attainable</dt><dd data-out="att">16 TFLOPS</dd></div>
         <div><dt>Share of peak</dt><dd data-out="pct">0.2%</dd></div>
         <div><dt>Bound by</dt><dd data-out="bound">memory</dd></div>
+        <div><dt>Workload</dt><dd data-out="mark">—</dd></div>
       </dl>
       <p data-out="note" style="margin:0.9rem 0 0;font-size:0.875rem;color:var(--ink-2)"></p>
     </div>
@@ -196,15 +197,30 @@ import Widget from '../components/Widget.astro';
       const fmtAI = (a: number) => a >= 100 ? Math.round(a).toLocaleString() : a.toFixed(1);
 
       const MARKS = [
-        { ai: 1.2, label: 'decode' },
-        { ai: 60, label: 'attention prefill' },
-        { ai: 2500, label: 'large GEMM' },
+        { ai: 1.2, label: 'decode', note: 'One token at a time, re-reading every weight. Memory-bound at any batch size that fits — more FLOPS buys nothing here.' },
+        { ai: 60, label: 'attention prefill', note: 'The whole prompt at once. Better, but still short of the ridge on HBM: attention re-reads the KV cache faster than it accumulates arithmetic.' },
+        { ai: 2500, label: 'large GEMM', note: 'Big dense tiles. The one shape that clears the ridge and actually reaches the flat roof this hardware is sold on.' },
       ];
+      const MUTED = 0.1;
+
+      // Hover previews a workload, a click keeps it, and touching the slider
+      // by hand releases it — the same contract as the other figures.
+      let pinnedMark: number | null = null;
+      let hoverMark: number | null = null;
+      /** The intensity the reader last chose with the slider themselves. */
+      let manualValue = slider.value;
+
+      const sliderFor = (ai: number) =>
+        String(Math.round(100 * Math.log10(ai / AI_MIN) / Math.log10(AI_MAX / AI_MIN)));
 
       const render = () => {
         const bw = BW[mode].bw;
         const ridge = PEAK / bw;
-        const ai = aiFromSlider();
+        const active = hoverMark ?? pinnedMark;
+        // Read the exact marker intensity rather than round-tripping it through
+        // the slider's integer steps, which would land the cursor next to the
+        // workload it is meant to be sitting on.
+        const ai = active !== null ? MARKS[active].ai : aiFromSlider();
         const att = Math.min(PEAK, bw * ai);
 
         plot.textContent = '';
@@ -239,13 +255,23 @@ import Widget from '../components/Widget.astro';
         plot.appendChild(rl);
 
         // workload markers
-        for (const m of MARKS) {
+        MARKS.forEach((m, i) => {
           const y = ly(Math.min(PEAK, bw * m.ai));
-          plot.appendChild(el('circle', { cx: lx(m.ai), cy: y, r: 3.5, fill: 'var(--ink-3)' }));
-          const t = el('text', { x: lx(m.ai), y: y - 9, 'text-anchor': 'middle', fill: 'var(--ink-3)' });
-          t.textContent = m.label;
-          plot.appendChild(t);
-        }
+          const on = active === null || active === i;
+          const g = el('g', { 'data-mark': i, tabindex: 0, role: 'button',
+            opacity: on ? 1 : MUTED, 'aria-label': `${m.label}, ${fmtAI(m.ai)} FLOP per byte` }) as SVGGElement;
+          g.style.cursor = 'pointer';
+          g.appendChild(el('circle', { cx: lx(m.ai), cy: y, r: active === i ? 5 : 3.5,
+            fill: active === i ? 'var(--gpu)' : 'var(--ink-3)' }));
+          const t = el('text', { x: lx(m.ai), y: y - 11, 'text-anchor': 'middle',
+            fill: active === i ? 'var(--gpu)' : 'var(--ink-3)' });
+          t.textContent = m.label + (i === pinnedMark ? ' ·' : '');
+          g.appendChild(t);
+          // A generous invisible hit area — the dot alone is a hard target.
+          g.appendChild(el('rect', { x: lx(m.ai) - 34, y: y - 22, width: 68, height: 30,
+            fill: 'transparent' }));
+          plot.appendChild(g);
+        });
 
         // cursor
         plot.appendChild(el('circle', { cx: lx(ai), cy: ly(att), r: 6, fill: 'var(--gpu)' }));
@@ -258,10 +284,45 @@ import Widget from '../components/Widget.astro';
         out('att').textContent = fmtF(att);
         out('pct').textContent = (att / PEAK * 100).toFixed(att / PEAK < 0.01 ? 2 : 1) + '%';
         out('bound').textContent = bound;
-        out('note').textContent = BW[mode].note;
+        out('mark').textContent = active === null
+          ? '—'
+          : MARKS[active].label + (active === pinnedMark ? ' · pinned' : '');
+        out('note').textContent = active === null ? BW[mode].note : MARKS[active].note;
+
+        // Wired after each redraw, since the markers are rebuilt every time.
+        plot.querySelectorAll<SVGGElement>('[data-mark]').forEach((g) => {
+          const i = Number(g.dataset.mark);
+          const preview = () => { hoverMark = i; slider.value = sliderFor(MARKS[i].ai); render(); };
+          const toggle = () => {
+            pinnedMark = pinnedMark === i ? null : i;
+            hoverMark = null;
+            slider.value = pinnedMark === null ? manualValue : sliderFor(MARKS[i].ai);
+            render();
+          };
+          g.addEventListener('mouseenter', preview);
+          g.addEventListener('focus', preview);
+          g.addEventListener('click', toggle);
+          g.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            e.preventDefault();
+            toggle();
+          });
+        });
       };
 
-      slider.addEventListener('input', render);
+      slider.addEventListener('input', () => {
+        // Moving the slider by hand is a deliberate override: drop the pin.
+        pinnedMark = null;
+        hoverMark = null;
+        manualValue = slider.value;
+        render();
+      });
+      plot.closest('svg')?.addEventListener('mouseleave', () => {
+        if (hoverMark === null) return;
+        hoverMark = null;
+        slider.value = pinnedMark === null ? manualValue : sliderFor(MARKS[pinnedMark].ai);
+        render();
+      });
       fig.querySelectorAll<HTMLButtonElement>('[data-bw]').forEach((b) =>
         b.addEventListener('click', () => {
           mode = b.dataset.bw!;

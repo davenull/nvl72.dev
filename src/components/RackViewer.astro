@@ -23,6 +23,12 @@ const labels: Record<string, string> = {
   <div class="widget-body flush">
     <div class="rack-stage">
       <canvas data-rack></canvas>
+      <div class="rack-height">
+        <span aria-hidden="true">top</span>
+        <input type="range" data-height min="0" max="100" value="50" step="1"
+               orient="vertical" aria-label="Camera height along the rack" />
+        <span aria-hidden="true">base</span>
+      </div>
       <p class="rack-badge">72 GPUs · 36 CPUs · 27 trays<br />2,236 × 600 × 1,068 mm · ~1.36 t</p>
     </div>
   </div>
@@ -64,6 +70,7 @@ const labels: Record<string, string> = {
     const readout = widget.querySelector<HTMLElement>('[data-rack-readout]');
     const HINT = readout?.textContent ?? '';
     const slider = widget.querySelector<HTMLInputElement>('[data-explode]');
+    const height = widget.querySelector<HTMLInputElement>('[data-height]');
     const out = widget.querySelector<HTMLOutputElement>('[data-explode-out]');
     const panel = widget.querySelector<HTMLElement>('[data-part-panel]');
     const tour = widget.querySelector<HTMLElement>('[data-tour]');
@@ -123,11 +130,18 @@ const labels: Record<string, string> = {
         handle!.setExplode(v / 100);
       });
 
+      height?.addEventListener('input', () => handle!.setHeight(Number(height.value) / 100));
+      // The tour moves the camera too, so pull the control back into agreement.
+      const syncHeight = () => {
+        if (height && handle) height.value = String(Math.round(handle.getHeight() * 100));
+      };
+
       tour?.querySelectorAll<HTMLButtonElement>('[data-stop]').forEach((b) => {
         b.addEventListener('click', () => {
           const on = b.getAttribute('aria-pressed') === 'true';
           const id = on ? null : b.dataset.stop!;
           handle!.focus(id, { explode: id ? 0.78 : 0.2 });
+          syncHeight();
           setSlider(id ? 78 : 20);
           pinned = id;
           describe(id);
@@ -137,6 +151,7 @@ const labels: Record<string, string> = {
       });
       tour?.querySelector('[data-reset]')?.addEventListener('click', () => {
         handle!.resetView();
+        syncHeight();
         setSlider(0);
         pinned = null;
         describe(null);
