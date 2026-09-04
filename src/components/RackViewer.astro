@@ -17,13 +17,12 @@ const labels: Record<string, string> = {
 <figure class="widget" data-rack-widget data-auto-rotate={autoRotate ? '1' : '0'}>
   <div class="widget-head">
     <h4>GB200 NVL72 — schematic rack</h4>
-    <span class="hint">Drag to rotate · scroll to zoom · click a part</span>
+    <span class="hint" data-rack-readout>Drag to rotate · scroll to zoom · click a part</span>
   </div>
 
   <div class="widget-body flush">
     <div class="rack-stage">
       <canvas data-rack></canvas>
-      <div class="hotspots" data-hotspots></div>
       <p class="rack-badge">72 GPUs · 36 CPUs · 27 trays<br />2,236 × 600 × 1,068 mm · ~1.36 t</p>
     </div>
   </div>
@@ -62,7 +61,8 @@ const labels: Record<string, string> = {
 
   document.querySelectorAll<HTMLElement>('[data-rack-widget]').forEach((widget) => {
     const canvas = widget.querySelector<HTMLCanvasElement>('[data-rack]')!;
-    const hotspots = widget.querySelector<HTMLElement>('[data-hotspots]')!;
+    const readout = widget.querySelector<HTMLElement>('[data-rack-readout]');
+    const HINT = readout?.textContent ?? '';
     const slider = widget.querySelector<HTMLInputElement>('[data-explode]');
     const out = widget.querySelector<HTMLOutputElement>('[data-explode-out]');
     const panel = widget.querySelector<HTMLElement>('[data-part-panel]');
@@ -86,6 +86,14 @@ const labels: Record<string, string> = {
       if (slider) slider.value = String(pct);
       if (out) out.textContent = pct + '%';
     };
+    // Naming the part in the header, rather than floating a label box over the
+    // model: the dimming already says *which* part, the header says what it is.
+    const say = (id: string | null) => {
+      if (!readout) return;
+      const p = id ? byId.get(id) : undefined;
+      readout.textContent = p ? `${p.label} · ${p.count}` : HINT;
+      readout.style.color = p ? 'var(--copper)' : '';
+    };
 
     let handle: RackHandle | null = null;
     let started = false;
@@ -94,10 +102,11 @@ const labels: Record<string, string> = {
       if (started) return;
       started = true;
       const { mountRack } = await import('../scripts/rack');
+      let pinned: string | null = null;
       handle = mountRack(canvas, {
-        labels: hotspots,
         autoRotate: widget.dataset.autoRotate === '1',
-        onSelect: (id) => { describe(id); setPressed(id); },
+        onSelect: (id) => { pinned = id; describe(id); setPressed(id); say(id); },
+        onHover: (id) => say(id ?? pinned),
       });
 
       if (!handle) {
@@ -120,15 +129,19 @@ const labels: Record<string, string> = {
           const id = on ? null : b.dataset.stop!;
           handle!.focus(id, { explode: id ? 0.78 : 0.2 });
           setSlider(id ? 78 : 20);
+          pinned = id;
           describe(id);
           setPressed(id);
+          say(id);
         });
       });
       tour?.querySelector('[data-reset]')?.addEventListener('click', () => {
         handle!.resetView();
         setSlider(0);
+        pinned = null;
         describe(null);
         setPressed(null);
+        say(null);
       });
     }
 

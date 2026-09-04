@@ -26,60 +26,73 @@ import SpecTable from '../components/SpecTable.astro';
 
   <Widget
     title="Compute tray, plan view"
-    hint="Hover or tap a component"
-    caption="Two GB200 boards per tray, airflow-free: every heat-producing package sits under a cold plate fed from the rear manifold. Drawn to approximate proportion, not to scale."
+    hint="Hover a component · click to keep it"
+    caption="Looking down on one 1U tray. Coolant enters and leaves at the rear through blind-mate quick disconnects; networking faces the front. Two GB200 boards, each one Grace CPU feeding two Blackwell GPUs over NVLink-C2C. Drawn to approximate proportion, not to scale."
   >
-    <svg class="diagram" viewBox="0 0 720 300" role="img" aria-label="Plan view of a compute tray showing two boards, each with one Grace CPU and two Blackwell GPUs, connected by NVLink-C2C, plus rear coolant couplings and front-panel networking." data-tray>
+    <svg class="diagram" viewBox="0 0 720 372" role="img" aria-label="Plan view of a 1U compute tray. Coolant quick disconnects along the rear edge, two GB200 boards each with one Grace CPU and two Blackwell GPUs joined by NVLink-C2C, and ConnectX-7 network ports along the front edge." data-tray>
+      <text x="12" y="14" fill="var(--ink-3)">REAR — coolant manifold</text>
+
       <!-- chassis -->
-      <rect x="10" y="14" width="700" height="272" rx="8" fill="none" stroke="var(--line-strong)" stroke-width="1.5"/>
-      <text x="20" y="38" class="lbl-lg">1U compute tray</text>
-      <text x="700" y="38" text-anchor="end">front ↓</text>
-
-      <g data-part="board" style="cursor:pointer">
-        <rect x="26" y="52" width="330" height="220" rx="6" fill="var(--panel-2)" stroke="var(--line-strong)"/>
-        <rect x="364" y="52" width="330" height="220" rx="6" fill="var(--panel-2)" stroke="var(--line-strong)"/>
-        <text x="30" y="70">GB200 board A</text>
-        <text x="368" y="70">GB200 board B</text>
-      </g>
-
-      {[0, 1].map((b) => {
-        const ox = b * 338;
-        return (
-          <g>
-            <g data-part="gpu" style="cursor:pointer">
-              <rect x={40 + ox} y={82} width="140" height="82" rx="5" fill="var(--gpu)" opacity="0.85"/>
-              <text x={110 + ox} y={118} text-anchor="middle" fill="#fff">Blackwell</text>
-              <text x={110 + ox} y={134} text-anchor="middle" fill="#fff">192 GB HBM3e</text>
-              <rect x={40 + ox} y={172} width="140" height="82" rx="5" fill="var(--gpu)" opacity="0.85"/>
-              <text x={110 + ox} y={208} text-anchor="middle" fill="#fff">Blackwell</text>
-              <text x={110 + ox} y={224} text-anchor="middle" fill="#fff">192 GB HBM3e</text>
-            </g>
-            <g data-part="c2c" style="cursor:pointer">
-              <line x1={180 + ox} y1={123} x2={222 + ox} y2={150} stroke="var(--copper)" stroke-width="4"/>
-              <line x1={180 + ox} y1={213} x2={222 + ox} y2={166} stroke="var(--copper)" stroke-width="4"/>
-              <text x={200 + ox} y={112} text-anchor="middle" fill="var(--copper)">900</text>
-              <text x={200 + ox} y={236} text-anchor="middle" fill="var(--copper)">GB/s</text>
-            </g>
-            <g data-part="cpu" style="cursor:pointer">
-              <rect x={222 + ox} y={124} width="120" height="66" rx="5" fill="var(--cpu)" opacity="0.85"/>
-              <text x={282 + ox} y={152} text-anchor="middle" fill="#fff">Grace</text>
-              <text x={282 + ox} y={168} text-anchor="middle" fill="#fff">72 Arm cores</text>
-            </g>
-          </g>
-        );
-      })}
+      <rect x="12" y="46" width="696" height="272" rx="8" fill="none" stroke="var(--line-strong)" stroke-width="1.5"/>
 
       <g data-part="uqd" style="cursor:pointer">
-        <circle cx="120" cy="30" r="9" fill="var(--coolant)"/>
-        <circle cx="600" cy="30" r="9" fill="var(--coolant)"/>
-        <text x="140" y="34" fill="var(--coolant)">rear UQD coolant couplings</text>
+        {[0, 344].map((ox) => (
+          <>
+            <line x1={110 + ox} y1={46} x2={110 + ox} y2={76} stroke="var(--coolant)" stroke-width="3"/>
+            <line x1={266 + ox} y1={46} x2={266 + ox} y2={76} stroke="var(--coolant)" stroke-width="3"/>
+            <circle cx={110 + ox} cy={46} r="7" fill="var(--bg)" stroke="var(--coolant)" stroke-width="3"/>
+            <circle cx={266 + ox} cy={46} r="7" fill="var(--bg)" stroke="var(--coolant)" stroke-width="3"/>
+          </>
+        ))}
+        <text x="708" y="36" text-anchor="end" fill="var(--coolant)">UQD blind-mate couplings ×4</text>
       </g>
+
+      <g data-part="board" style="cursor:pointer">
+        <rect x="28" y="76" width="320" height="200" rx="6" fill="var(--panel-2)" stroke="var(--line-strong)"/>
+        <rect x="372" y="76" width="320" height="200" rx="6" fill="var(--panel-2)" stroke="var(--line-strong)"/>
+        <text x="36" y="92">GB200 board A</text>
+        <text x="380" y="92">GB200 board B</text>
+      </g>
+
+      {[0, 344].map((ox) => (
+        <>
+          <g data-part="c2c" style="cursor:pointer">
+            <line x1={160 + ox} y1={146} x2={112 + ox} y2={176} stroke="var(--copper)" stroke-width="4"/>
+            <line x1={216 + ox} y1={146} x2={264 + ox} y2={176} stroke="var(--copper)" stroke-width="4"/>
+            <text x={188 + ox} y={170} text-anchor="middle" fill="var(--copper)">900 GB/s</text>
+          </g>
+          <g data-part="cpu" style="cursor:pointer">
+            <rect x={128 + ox} y={94} width="120" height="52" rx="5" fill="var(--cpu)" opacity="0.85"/>
+            <text x={188 + ox} y={116} text-anchor="middle" fill="#fff">Grace</text>
+            <text x={188 + ox} y={132} text-anchor="middle" fill="#fff">72 Arm cores</text>
+          </g>
+          <g data-part="gpu" style="cursor:pointer">
+            <rect x={42 + ox} y={176} width="136" height="76" rx="5" fill="var(--gpu)" opacity="0.85"/>
+            <text x={110 + ox} y={208} text-anchor="middle" fill="#fff">Blackwell</text>
+            <text x={110 + ox} y={224} text-anchor="middle" fill="#fff">192 GB HBM3e</text>
+            <rect x={198 + ox} y={176} width="136" height="76" rx="5" fill="var(--gpu)" opacity="0.85"/>
+            <text x={266 + ox} y={208} text-anchor="middle" fill="#fff">Blackwell</text>
+            <text x={266 + ox} y={224} text-anchor="middle" fill="#fff">192 GB HBM3e</text>
+          </g>
+        </>
+      ))}
+
+      <g data-part="nic" style="cursor:pointer">
+        {[0, 1, 2, 3].map((i) => (
+          <rect x={70 + i * 156} y={288} width="86" height="18" rx="3" fill="var(--switch)" opacity="0.75"/>
+        ))}
+        {[0, 1, 2, 3].map((i) => (
+          <text x={113 + i * 156} y={301} text-anchor="middle" fill="#fff">ConnectX-7</text>
+        ))}
+      </g>
+
+      <text x="12" y="338" fill="var(--ink-3)">FRONT — network, storage, service access</text>
     </svg>
   </Widget>
 
   <div class="prose">
     <div class="part-panel" data-tray-panel aria-live="polite" style="border:1px solid var(--line);border-radius:var(--radius);margin-bottom:2rem">
-      <p class="idle">Pick a component in the diagram above.</p>
+      <p class="idle">Hover a component in the diagram above, or click one to keep it.</p>
     </div>
 
     <h2 id="board">The board is the real unit</h2>
@@ -178,30 +191,47 @@ import SpecTable from '../components/SpecTable.astro';
       gpu: ['Blackwell GPU', 'Two reticle-limited dies joined by a 10 TB/s NV-HBI link and presented as one coherent GPU. 192 GB of HBM3e at 8 TB/s, about 20 PFLOPS of sparse FP4.'],
       cpu: ['Grace CPU', '72 Arm Neoverse V2 cores with up to 480 GB of LPDDR5X. In GB200 it uses a reduced 1 MB L2 per core — the standalone Grace Superchip datasheet describes a different configuration.'],
       c2c: ['NVLink-C2C', '900 GB/s of coherent bandwidth between the Grace CPU and each Blackwell GPU, roughly seven times PCIe Gen5. Coherent means shared addresses, not faster copies.'],
-      uqd: ['Coolant couplings', 'Blind-mate universal quick disconnects at the rear. They seal on removal, so a tray can be pulled while the rack is running and the loop stays pressurised.'],
+      uqd: ['Coolant couplings', 'Blind-mate universal quick disconnects at the rear. They seal on removal, so a tray can be pulled while the rack is running and the loop stays pressurised. There is no air-cooled fallback: every significant package on the board sits under a cold plate fed from these.'],
+      nic: ['Front-panel networking', 'Four single-port ConnectX-7 NICs, with up to two BlueField-3 DPUs and up to eight E1.S drives. This is the scale-out side of the tray — the NVLink fabric leaves from the rear, not from here.'],
     };
-    const IDLE = '<p class="idle">Pick a component in the diagram above.</p>';
+    const IDLE = '<p class="idle">Hover a component in the diagram above, or click one to keep it.</p>';
     const panel = document.querySelector<HTMLElement>('[data-tray-panel]');
     const svg = document.querySelector<SVGElement>('[data-tray]');
 
     if (panel && svg) {
-      const show = (key: string | null) => {
+      const groups = [...svg.querySelectorAll<SVGGElement>('[data-part]')];
+      let pinned: string | null = null;
+
+      const render = (key: string | null) => {
         const e = key ? INFO[key] : undefined;
-        panel.innerHTML = e ? `<h5>${e[0]}</h5><p>${e[1]}</p>` : IDLE;
-        svg.querySelectorAll<SVGGElement>('[data-part]').forEach((g) => {
-          g.style.opacity = !key || g.dataset.part === key ? '1' : '0.3';
-        });
+        panel.innerHTML = e
+          ? `<h5>${e[0]}${key === pinned ? ' <span class="count">pinned — click again to release</span>' : ''}</h5><p>${e[1]}</p>`
+          : IDLE;
+        // Dimming is the whole affordance: no label boxes over the drawing.
+        for (const g of groups) g.style.opacity = !key || g.dataset.part === key ? '1' : '0.18';
       };
-      svg.querySelectorAll<SVGGElement>('[data-part]').forEach((g) => {
+
+      for (const g of groups) {
         const key = g.dataset.part!;
         g.setAttribute('tabindex', '0');
         g.setAttribute('role', 'button');
         g.setAttribute('aria-label', INFO[key]?.[0] ?? key);
-        g.addEventListener('mouseenter', () => show(key));
-        g.addEventListener('focus', () => show(key));
-        g.addEventListener('click', () => show(key));
-      });
-      svg.addEventListener('mouseleave', () => show(null));
+        g.addEventListener('mouseenter', () => render(key));
+        g.addEventListener('focus', () => render(key));
+        g.addEventListener('click', () => {
+          pinned = pinned === key ? null : key;
+          render(pinned ?? key);
+        });
+        g.addEventListener('keydown', (e) => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          pinned = pinned === key ? null : key;
+          render(pinned ?? key);
+        });
+      }
+      // Leaving the drawing falls back to whatever is pinned, not to nothing.
+      svg.addEventListener('mouseleave', () => render(pinned));
+      render(null);
     }
   </script>
 </Base>

@@ -25,8 +25,13 @@ export interface RackPart {
   /** Multiplier on the explode factor, in metres. */
   dist: number;
   home: THREE.Vector3;
-  /** Anchor for the projected DOM label. */
-  anchor: THREE.Vector3;
+  /**
+   * Offset from the group's origin to the visual centre of its geometry.
+   * Parts like the busbar and the spine are groups sitting at the origin whose
+   * children carry absolute positions, so the group origin is at the rack's
+   * base — using it as the focus target aimed the camera at the floor.
+   */
+  anchorOffset: THREE.Vector3;
 }
 
 export interface RackHandle {
@@ -42,7 +47,6 @@ interface Options {
   onHover?: (id: string | null) => void;
   /** Slow idle rotation, suppressed under prefers-reduced-motion. */
   autoRotate?: boolean;
-  labels?: HTMLElement;
 }
 
 /* ── Dimensions (metres) ─────────────────────────────────────────────── */
@@ -147,7 +151,7 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
     object.traverse((o) => { o.userData.partId = id; });
     const p: RackPart = {
       id, index, object, dir: dir.clone().normalize(), dist,
-      home: object.position.clone(), anchor: object.position.clone(),
+      home: object.position.clone(), anchorOffset: new THREE.Vector3(),
     };
     parts.push(p);
     if (!byId.has(id)) byId.set(id, []);
@@ -329,9 +333,20 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
   root.add(manifold);
   register('manifold', manifold, new THREE.Vector3(-1, 0, -0.7), 0.42);
 
+  // Measure each part's visual centre once, while everything is still at home.
+  {
+    const box = new THREE.Box3();
+    const centre = new THREE.Vector3();
+    for (const p of parts) {
+      box.setFromObject(p.object);
+      if (box.isEmpty()) continue;
+      box.getCenter(centre);
+      p.anchorOffset.copy(centre).sub(p.object.position);
+    }
+  }
+
   // Centre the rack on the origin so orbiting feels natural.
   root.position.y = -H / 2;
-  for (const p of parts) p.anchor.copy(p.home).add(new THREE.Vector3(0, -H / 2, 0));
 
   applyTheme();
 
@@ -350,7 +365,9 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
   const goal = { ...view };
   let explode = 0;
   let explodeGoal = 0;
+  /** What is dimmed right now: the hovered part if any, else the selected one. */
   let highlight: string | null = null;
+  let hovered: string | null = null;
   let selected: string | null = null;
 
   function place() {
@@ -448,14 +465,17 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
     const id = pick(e);
     selected = id === selected ? null : id;
     opts.onSelect?.(selected);
-    setHighlight(selected ?? null);
+    applyDim();
   }
   function setHover(id: string | null) {
     canvas.style.cursor = id && id !== 'frame' ? 'pointer' : 'grab';
-    if (id === highlight) return;
+    if (id === hovered) return;
+    hovered = id;
     opts.onHover?.(id);
-    if (!selected) setHighlight(id);
+    applyDim();
   }
+  /** Hover previews the dim; the selection is what persists underneath it. */
+  function applyDim() { setHighlight(hovered ?? selected); }
 
   const dimmed = new Set<THREE.Material>();
   function setHighlight(id: string | null) {
@@ -474,51 +494,16 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
     });
   }
 
-  /* ── Labels (DOM projected onto the canvas) ────────────────────────── */
-  const labelEls = new Map<string, HTMLElement>();
-  if (opts.labels) {
-    const seen = new Set<string>();
-    for (const p of parts) {
-      if (seen.has(p.id) || p.id === 'frame') continue;
-      seen.add(p.id);
-      const el = document.createElement('button');
-      el.type = 'button';
-      el.className = 'hotspot';
-      el.dataset.part = p.id;
-      el.textContent = labelFor(p.id);
-      el.addEventListener('click', () => {
-        selected = selected === p.id ? null : p.id;
-        opts.onSelect?.(selected);
-        setHighlight(selected);
-      });
-      opts.labels.appendChild(el);
-      labelEls.set(p.id, el);
-    }
-  }
+  /**
+   * The representative part used as a focus target for a whole group — the
+   * middle tray of the eighteen, the single busbar, and so on.
+   */
+  const focusAnchor = new Map<string, RackPart>();
+  for (const [id, list] of byId) focusAnchor.set(id, list[Math.floor(list.length / 2)]);
 
-  function labelFor(id: string) {
-    return ({ compute: 'Compute tray ×18', switch: 'NVSwitch tray ×9', spine: 'NVLink spine',
-      busbar: 'Busbar', psu: 'Power shelf ×3', manifold: 'Coolant manifold', cdu: 'CDU' } as Record<string, string>)[id] ?? id;
-  }
-
-  /** The representative part used to anchor each label. */
-  const labelAnchor = new Map<string, RackPart>();
-  for (const [id, list] of byId) labelAnchor.set(id, list[Math.floor(list.length / 2)]);
-
-  const proj = new THREE.Vector3();
-  function updateLabels() {
-    if (!opts.labels) return;
-    const r = canvas.getBoundingClientRect();
-    for (const [id, el] of labelEls) {
-      const p = labelAnchor.get(id);
-      if (!p) continue;
-      proj.copy(p.object.position).add(new THREE.Vector3(0, -H / 2, 0)).project(camera);
-      const visible = proj.z < 1 && explode > 0.04;
-      el.style.opacity = visible ? '1' : '0';
-      el.style.pointerEvents = visible ? 'auto' : 'none';
-      el.style.transform = `translate(-50%,-50%) translate(${(proj.x * 0.5 + 0.5) * r.width}px, ${(-proj.y * 0.5 + 0.5) * r.height}px)`;
-      el.classList.toggle('is-on', highlight === id);
-    }
+  /** World-space centre of a part, accounting for the current explode offset. */
+  function anchorOf(p: RackPart) {
+    return p.object.position.clone().add(p.anchorOffset).add(new THREE.Vector3(0, -H / 2, 0));
   }
 
   /* ── Loop ──────────────────────────────────────────────────────────── */
@@ -565,7 +550,6 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
       m.opacity = Math.max(0.12, frameOpacity);
       m.transparent = frameOpacity < 0.99;
     }
-    updateLabels();
     renderer.render(scene, camera);
   }
   tick();
@@ -577,14 +561,15 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
 
   return {
     setExplode(v) { explodeGoal = clamp(v, 0, 1); },
-    setHighlight(id) { selected = id; setHighlight(id); },
+    setHighlight(id) { selected = id; applyDim(); },
     focus(id, o) {
       selected = id;
       setHighlight(id);
       if (o?.explode !== undefined) explodeGoal = o.explode;
-      const p = id ? labelAnchor.get(id) : null;
+      const p = id ? focusAnchor.get(id) : null;
       if (p) {
-        target.set(0, p.home.y - H / 2, 0);
+        const c = anchorOf(p);
+        target.set(0, c.y, 0);
         goal.radius = fitRadius() * 0.6;
         goal.theta = 0.75;
         goal.phi = 1.35;
@@ -597,7 +582,7 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
       userZoomed = false;
       target.set(0, 0, 0);
       goal.theta = 0.66; goal.phi = 1.24; goal.radius = fitRadius();
-      explodeGoal = 0; selected = null; setHighlight(null);
+      explodeGoal = 0; selected = null; hovered = null; applyDim();
     },
     dispose() {
       cancelAnimationFrame(raf);
