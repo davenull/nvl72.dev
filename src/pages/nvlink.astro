@@ -219,7 +219,8 @@ import SpecTable from '../components/SpecTable.astro';
       const gpuPos: { x: number; y: number; tray: number; i: number }[] = [];
       for (let t = 0; t < 18; t++) {
         const y = TOP + t * ROW;
-        gGpu.appendChild(el('text', { x: 8, y: y + 10, 'font-size': 9 })).textContent = String(t + 1).padStart(2, '0');
+        gGpu.appendChild(el('text', { x: 8, y: y + 10, 'font-size': 9, 'data-tray-label': t }))
+          .textContent = String(t + 1).padStart(2, '0');
         for (let i = 0; i < 4; i++) {
           const x = 30 + i * (GW + 4);
           const r = el('rect', { x, y, width: GW, height: GH, rx: 2, fill: 'var(--gpu)', opacity: 0.55,
@@ -233,7 +234,8 @@ import SpecTable from '../components/SpecTable.astro';
       for (let s = 0; s < 18; s++) {
         const y = TOP + 4 + s * ROW;
         const x = 660;
-        gSw.appendChild(el('rect', { x, y, width: 46, height: 13, rx: 2, fill: 'var(--switch)', opacity: 0.75 }));
+        gSw.appendChild(el('rect', { x, y, width: 46, height: 13, rx: 2, fill: 'var(--switch)',
+          opacity: 0.9, 'data-sw': s }));
         gSw.appendChild(el('text', { x: x + 52, y: y + 10, 'font-size': 9 })).textContent = 'sw' + String(s + 1).padStart(2, '0');
         swPos.push({ x, y: y + 6.5 });
       }
@@ -252,13 +254,37 @@ import SpecTable from '../components/SpecTable.astro';
         }
       };
       const out = (k: string) => fab.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+
+      // Same mute level as the 3D rack and the tray diagram.
+      const MUTED = '0.1';
+      const trayLabels = [...gGpu.querySelectorAll<SVGTextElement>('[data-tray-label]')];
+      const swRects = [...gSw.querySelectorAll<SVGRectElement>('[data-sw]')];
+
       const select = (g: number | null) => {
+        // The selected GPU is left alone and its 71 peers mute back. The
+        // switch column stays lit on purpose: the whole claim of this figure
+        // is that one GPU reaches all eighteen of them, so they are the far
+        // end of the selection rather than something competing with it.
         gGpu.querySelectorAll<SVGRectElement>('[data-gpu]').forEach((r) => {
-          r.setAttribute('opacity', g !== null && Number(r.dataset.gpu) === g ? '1' : '0.55');
+          r.setAttribute('opacity', g !== null && Number(r.dataset.gpu) === g ? '1' : MUTED);
         });
+        for (const t of trayLabels) {
+          const own = g !== null && Number(t.dataset.trayLabel) === gpuPos[g].tray;
+          t.setAttribute('opacity', g === null || own ? '1' : MUTED);
+        }
+        for (const r of swRects) r.setAttribute('opacity', g === null ? '0.9' : '1');
         if (g === null) { draw([], 0); out('sel').textContent = '—'; return; }
-        draw([g], 0.5);
+        draw([g], 0.75);
         out('sel').textContent = `GPU ${g + 1} · tray ${gpuPos[g].tray + 1}`;
+      };
+
+      /** "All links" has no single subject, so nothing is muted. */
+      const showAll = () => {
+        gGpu.querySelectorAll<SVGRectElement>('[data-gpu]').forEach((r) => r.setAttribute('opacity', '0.55'));
+        for (const t of trayLabels) t.setAttribute('opacity', '1');
+        for (const r of swRects) r.setAttribute('opacity', '0.9');
+        draw([...Array(72).keys()], 0.045);
+        out('sel').textContent = 'all 72';
       };
       gGpu.querySelectorAll<SVGRectElement>('[data-gpu]').forEach((r) => {
         const g = Number(r.dataset.gpu);
@@ -275,8 +301,7 @@ import SpecTable from '../components/SpecTable.astro';
           figFab!.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((o) =>
             o.setAttribute('aria-pressed', String(o === b)));
           if (mode === 'all') {
-            draw([...Array(72).keys()], 0.045);
-            out('sel').textContent = 'all 72';
+            showAll();
           } else {
             select(0);
           }

@@ -614,5 +614,7 @@ code { font-family: var(--mono); font-size: 0.875em; background: var(--bg-sunk);
    rack. The transition is dropped under prefers-reduced-motion by the global
    rule near the top of this file. */
 .diagram [data-part],
-.diagram [data-context] { transition: opacity 140ms ease; }
+.diagram [data-context],
+.diagram [data-gpu],
+.diagram [data-tray-label] { transition: opacity 140ms ease; }
 .diagram [data-part]:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
