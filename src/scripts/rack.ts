@@ -127,6 +127,12 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
     hemi.intensity = dark ? 0.55 : 0.9;
     key.intensity = dark ? 1.5 : 2.1;
     rim.intensity = dark ? 0.9 : 0.6;
+    // Push the new palette into every part's own copies.
+    for (const { m, base } of owned) {
+      m.color.copy(base.color);
+      m.roughness = base.roughness;
+      m.metalness = base.metalness;
+    }
   }
 
   const hemi = new THREE.HemisphereLight(0xffffff, 0x404040, 0.8);
@@ -146,9 +152,49 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
 
   const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 
+  /**
+   * Every part gets its own copies of the materials it uses.
+   *
+   * The palette above is shared — compute trays and switch trays both draw
+   * from `mat.tray`, the spine and the switch faces both draw from
+   * `mat.copper`. Highlighting by mutating those shared instances meant the
+   * last mesh traversed decided the opacity for everything using that
+   * material, so selecting a part could dim the part itself and leave its
+   * neighbours lit. Cloning per part makes the dim strictly per-part.
+   */
+  const owned: { m: THREE.MeshStandardMaterial; base: THREE.MeshStandardMaterial }[] = [];
+  function ownMaterials(object: THREE.Object3D) {
+    const seen = new Map<THREE.Material, THREE.MeshStandardMaterial>();
+    object.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const base = mesh.material as THREE.MeshStandardMaterial;
+      let copy = seen.get(base);
+      if (!copy) {
+        copy = base.clone();
+        // Compiled as transparent from the start, and left that way.
+        //
+        // three.js bakes an OPAQUE define into the fragment shader for
+        // materials that are not transparent, and that define forces alpha to
+        // 1 no matter what the opacity uniform says. Flipping `transparent`
+        // later therefore does nothing until `needsUpdate` forces a recompile —
+        // which, across the ~330 materials in this rack, would stutter on every
+        // hover. Declaring transparency once means highlighting only ever
+        // animates `opacity`, which is a plain uniform.
+        copy.transparent = true;
+        copy.opacity = 1;
+        copy.depthWrite = true;
+        seen.set(base, copy);
+        owned.push({ m: copy, base });
+      }
+      mesh.material = copy;
+    });
+  }
+
   function register(id: string, object: THREE.Object3D, dir: THREE.Vector3, dist: number, index?: number) {
     object.userData.partId = id;
     object.traverse((o) => { o.userData.partId = id; });
+    ownMaterials(object);
     const p: RackPart = {
       id, index, object, dir: dir.clone().normalize(), dist,
       home: object.position.clone(), anchorOffset: new THREE.Vector3(),
@@ -201,6 +247,8 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
   }
   root.add(frame);
   register('frame', frame, new THREE.Vector3(0, 0, -1), 0.0);
+  // The frame is the first part registered, so everything owned so far is its.
+  const frameMaterials = owned.map((o) => o.m);
 
   /* Trays ------------------------------------------------------------- */
   /** Thin coloured bar on a tray's front face, identifying its class. */
@@ -477,7 +525,6 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
   /** Hover previews the dim; the selection is what persists underneath it. */
   function applyDim() { setHighlight(hovered ?? selected); }
 
-  const dimmed = new Set<THREE.Material>();
   function setHighlight(id: string | null) {
     highlight = id;
     root.traverse((o) => {
@@ -485,12 +532,15 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
       if (!m.isMesh) return;
       const pid = m.userData.partId as string;
       const material = m.material as THREE.MeshStandardMaterial;
-      const on = !id || pid === id;
-      material.opacity = on ? 1 : 0.16;
-      material.transparent = !on;
-      material.emissiveIntensity = id && pid === id ? 0.28 : 0;
-      material.emissive = new THREE.Color(id && pid === id ? 0xffffff : 0x000000);
-      dimmed.add(material);
+      // Nothing selected: everything at full strength. Something selected:
+      // that part alone stays lit, every other part mutes back.
+      const lit = !id || pid === id;
+      material.opacity = lit ? 1 : 0.1;
+      // Muted parts stop writing depth so they never punch holes in the part
+      // that is meant to be readable through them.
+      material.depthWrite = lit;
+      material.emissiveIntensity = id && lit ? 0.14 : 0;
+      material.emissive.set(id && lit ? 0x8a5f33 : 0x000000);
     });
   }
 
@@ -544,11 +594,14 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
       p.object.position.copy(p.home).addScaledVector(p.dir, explode * p.dist);
     }
     // The frame fades as the rack comes apart, so it never occludes the guts.
-    const frameOpacity = 1 - explode * 0.85;
-    for (const m of [mat.frame, mat.trayFace, mat.shadowGap]) {
-      if (highlight) continue;
-      m.opacity = Math.max(0.12, frameOpacity);
-      m.transparent = frameOpacity < 0.99;
+    // Only the frame's own materials — while a part is highlighted, setHighlight
+    // owns every material and this must keep its hands off.
+    if (!highlight) {
+      const frameOpacity = Math.max(0.12, 1 - explode * 0.85);
+      for (const m of frameMaterials) {
+        m.opacity = frameOpacity;
+        m.depthWrite = frameOpacity > 0.99;
+      }
     }
     renderer.render(scene, camera);
   }
