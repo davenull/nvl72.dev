@@ -128,7 +128,8 @@ import SpecTable from '../components/SpecTable.astro';
       </p>
       <p>
         That exchange is what makes wide EP unaffordable on a scale-out fabric and affordable here:
-        it stays inside the NVLink domain, where per-GPU egress is 900 GB/s rather than 50 or 100.
+        it stays inside the NVLink domain, where per-GPU egress is <S id="nvlink-egress" /> rather
+        than <S id="cx7-egress" /> or <S id="cx8-egress" />.
         The 72-GPU domain is not incidental to disaggregated MoE serving; it is the precondition
         for it.
       </p>

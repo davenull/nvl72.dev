@@ -142,8 +142,9 @@ import Widget from '../components/Widget.astro';
       <p>
         Run that test on an MoE layer's expert all-to-all — a pure data movement with essentially
         no arithmetic attached — and it fails at every tier. It only becomes affordable when the
-        bandwidth in the denominator is 900 GB/s per GPU rather than 50 or 100, which is the
-        argument <a href="/inference">the inference chapter</a> makes in throughput terms.
+        bandwidth in the denominator is <S id="nvlink-egress" /> per GPU rather than
+        <S id="cx7-egress" /> or <S id="cx8-egress" />, which is the argument
+        <a href="/inference">the inference chapter</a> makes in throughput terms.
       </p>
     </L>
 
@@ -177,6 +178,8 @@ import Widget from '../components/Widget.astro';
       };
 
       const PEAK = 10e15;                 // dense FP4 per GPU, FLOPS
+      // The NVLink and InfiniBand figures mirror the spec ids `nvlink-egress`
+      // and `cx8-egress` in src/data/specs.ts; keep them in step.
       const BW: Record<string, { label: string; bw: number; note: string }> = {
         hbm: { label: 'HBM3e', bw: 8e12,
           note: 'The classic single-GPU roofline. The ridge sits above 1,000 FLOP/byte, so only large dense GEMMs reach the flat roof.' },

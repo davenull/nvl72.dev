@@ -68,6 +68,18 @@ const list: Spec[] = [
   // ── Interconnect ───────────────────────────────────────────────────────
   { id: 'nvlink-per-gpu', label: 'NVLink 5 bandwidth per GPU', value: '1.8', unit: 'TB/s', note: 'Bidirectional: 18 links × 100 GB/s. About 14× PCIe Gen5.', sources: ['nv-nvlink'] },
   { id: 'nvlink-links', label: 'NVLink ports per GPU', value: '18', sources: ['nv-nvlink'] },
+
+  /*
+   * Egress — one direction only. Every bandwidth comparison between the two
+   * tiers is really a comparison of these three, and until they were specs
+   * they were typed by hand in four chapters and hardcoded in three widget
+   * scripts. Note that `nvlink-egress` and `c2c` are both 900 GB/s and are
+   * *different facts*: this is per-GPU egress into the NVLink fabric, `c2c`
+   * is the Grace↔Blackwell link. Do not conflate them.
+   */
+  { id: 'nvlink-egress', label: 'NVLink egress per GPU, one direction', value: '900', unit: 'GB/s', note: 'Half of the 1.8 TB/s bidirectional headline. This is the figure to compare against a scale-out line rate, because a NIC’s quoted rate is also one direction.', sources: ['nv-nvlink'] },
+  { id: 'cx7-egress', label: 'ConnectX-7 egress per GPU', value: '50', unit: 'GB/s', note: '400 Gb/s. One NIC per GPU, so this is both the per-NIC and the per-GPU figure — 18× less than the same GPU has inside the rack.', sources: ['nv-gb200'] },
+  { id: 'cx8-egress', label: 'ConnectX-8 egress per GPU', value: '100', unit: 'GB/s', note: '800 Gb/s. Still 9× less than in-rack NVLink egress.', sources: ['nv-gb300'] },
   { id: 'nvswitch-asic', label: 'Bandwidth per NVSwitch5 ASIC', value: '28.8', unit: 'Tb/s', note: '7.2 TB/s; 36 + 36 ports. Lower than a raw 51.2 Tb/s switch because silicon budget goes to SHARP in-network reduction engines.', sources: ['nv-nvlink'] },
   { id: 'alltoall', label: 'All-to-all NVLink bandwidth in-rack', value: '130', unit: 'TB/s', sources: ['nv-gb200'] },
   { id: 'allreduce', label: 'AllReduce bandwidth over the spine', value: '260', unit: 'TB/s', sources: ['nv-ocp'] },

@@ -88,17 +88,20 @@ import SpecTable from '../components/SpecTable.astro';
   <div class="prose">
     <L min={3}>
       <p>
-        Worth stating what this removes rather than what it adds. There is no rail assignment, no
-        leaf/spine oversubscription ratio, no bisection figure to derate collectives against, and
-        no distinction between "near" and "far" peers within the rack. A parallelism strategy can
-        be chosen on numerical and load-balance grounds instead of being contorted to keep
-        high-traffic dimensions inside an 8-GPU node.
+        Worth stating what this removes rather than what it adds. There is no
+        <a href="/topology#rails">rail assignment</a>, no
+        <a href="/topology#oversubscription">leaf/spine oversubscription ratio</a>, no bisection
+        figure to derate collectives against, and no distinction between "near" and "far" peers
+        within the rack. A parallelism strategy can be chosen on numerical and load-balance
+        grounds instead of being contorted to keep high-traffic dimensions inside an 8-GPU node.
+        Every one of those absent concepts is a real thing one tier out — Part II is where they
+        are defined, and the negation reads better once you can see what is being negated.
       </p>
       <p>
-        The one thing it does not remove is the rack boundary. Inside, per-GPU egress is 900 GB/s;
-        across racks it is 50 GB/s on ConnectX-7 or 100 GB/s on ConnectX-8 — roughly a factor of
-        nine to eighteen. Every serious deployment decision at this scale is about which model
-        dimension gets to cross that line.
+        The one thing it does not remove is the rack boundary. Inside, per-GPU egress is
+        <S id="nvlink-egress" />; across racks it is <S id="cx7-egress" /> on ConnectX-7 or
+        <S id="cx8-egress" /> on ConnectX-8 — a factor of nine to eighteen. Every serious
+        deployment decision at this scale is about which model dimension gets to cross that line.
         <a href="/scale-out">Chapter 7</a> takes that up.
       </p>
     </L>
@@ -353,6 +356,9 @@ import SpecTable from '../components/SpecTable.astro';
     if (calc) {
       // Per-GPU egress bandwidth in bytes/s. NVLink's headline 1.8 TB/s is
       // bidirectional, so one direction is 900 GB/s.
+      // Mirrors the spec ids `nvlink-egress`, `cx8-egress` and `cx7-egress` in
+      // src/data/specs.ts. A widget script cannot import them, so if those
+      // specs change these must change with them.
       const FAB: Record<string, { label: string; bw: number }> = {
         nvlink: { label: 'NVLink 5, in-rack', bw: 900e9 },
         cx8: { label: 'ConnectX-8, 800 Gb/s', bw: 100e9 },

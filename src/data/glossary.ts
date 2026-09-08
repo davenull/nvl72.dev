@@ -116,7 +116,7 @@ const list: Entry[] = [
     id: 'scale-up',
     term: 'scale-up vs scale-out',
     short: 'Scale-up makes one machine bigger (NVLink); scale-out adds more machines (InfiniBand/Ethernet).',
-    long: 'NVL72’s whole thesis is that scale-up now extends to a whole rack. Inside the rack, bandwidth per GPU is roughly 18× what the scale-out network provides — so the partitioning of a model across the two tiers is the central performance decision.',
+    long: 'NVL72’s whole thesis is that scale-up now extends to a whole rack. Inside the rack a GPU has 900 GB/s of egress; outside it has 100 GB/s on ConnectX-8 or 50 GB/s on ConnectX-7 — a factor of 9 or 18 depending on the generation. Partitioning a model across those two tiers is the central performance decision.',
     see: ['nvlink', 'superpod'],
   },
   {
