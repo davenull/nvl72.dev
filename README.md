@@ -1,7 +1,8 @@
 # nvl72.dev
 
-An explorable explainer for the NVIDIA GB200 NVL72 — a rack of 72 Blackwell GPUs wired
-closely enough to be programmed as a single accelerator.
+An explorable explainer in two parts. **Part I — The Rack** covers the NVIDIA GB200 NVL72: 72
+Blackwell GPUs wired closely enough to be programmed as a single accelerator. **Part II — The
+Fabric** covers the InfiniBand and Ethernet network that joins those racks into a cluster.
 
 Static Astro site deployed to **Cloudflare Workers Static Assets**. No server-side rendering,
 no Worker code path, and therefore no billable requests: static asset requests are unmetered on
@@ -34,7 +35,7 @@ src/
     specs.ts       every number the site states, defined exactly once
     sources.ts     every citation, with a verified flag
     glossary.ts    every term, defined exactly once
-    chapters.ts    sitemap and prev/next ordering
+    chapters.ts    part structure, sitemap, prev/next ordering and kicker derivation
   components/      S (spec), T (term), L (depth gate), Cite, Callout, SpecTable, Widget…
   scripts/
     rack.ts        the procedural 3D rack
@@ -53,6 +54,22 @@ Three rules hold the content together, and breaking any of them is a bug:
 3. **Nothing lives only in an interactive figure.** Every part the 3D rack shows is also written
    out in text on the same page, and every widget's numbers appear in the surrounding prose.
    The non-3D path is the accessibility floor and the SEO content.
+
+### Two parts
+
+`chapters.ts` exports a nested `parts` array; `part` is back-filled onto each chapter at module
+load, and the two reference pages live in a separate `refs` export. Chapter numbers restart at 1
+within each part, so kickers must be derived (`kickerFor`) rather than hand-written — two
+chapters legitimately claim "Chapter 03".
+
+The header shows one part's stepper at a time, with a switch of two real links between them. The
+active pill carries `aria-current="true"`, not `"page"`: it points at its part's first chapter,
+which is usually not the current page. `/glossary`, `/sources` and `/404` belong to no part and
+fall back to Part I's stepper with nothing marked current — do not add a "light the first dot if
+nothing matched" fallback, which would break that.
+
+`siblings()` walks chapters only, so reference pages are outside prev/next. It does cross the
+part boundary, and flags the crossing so both the header arrow and the bottom card can label it.
 
 ### The depth control
 
