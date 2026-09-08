@@ -125,6 +125,30 @@ const list: Spec[] = [
   { id: 'cx8', label: 'ConnectX-8 SuperNIC', value: '800', unit: 'Gb/s', note: 'PCIe Gen6; shipped on GB300.', sources: ['nv-gb300'] },
   { id: 'quantum-x800', label: 'Quantum-X800 InfiniBand switch', value: '144 × 800', unit: 'Gb/s', note: 'Q3400.', sources: ['nv-gb200'] },
 
+  // ── The fabric ─────────────────────────────────────────────────────────
+  { id: 'xdr-rate', label: 'XDR per-port rate', value: '800', unit: 'Gb/s', note: 'Four lanes at 200 Gb/s. Quantum-X800 generation.', sources: ['nv-ib-switching', 'nv-quantum-x800'] },
+  { id: 'ndr-rate', label: 'NDR per-port rate', value: '400', unit: 'Gb/s', note: 'Four lanes at 100 Gb/s. Quantum-2 generation, which NVIDIA positions "for Hopper-generation or cost-optimized deployments" — and which is what the DGX GB200 SuperPOD reference architecture actually specifies, with ConnectX-7.', sources: ['nv-ib-switching', 'nv-superpod-components'] },
+  { id: 'q3400-ports', label: 'Quantum-X800 Q3400 switch', value: '144 × 800', unit: 'Gb/s', note: 'XDR, over 72 OSFP cages — two ports per cage. Around 115 Tb/s of switching capacity in one box.', sources: ['nv-xdr-switches', 'nv-quantum-x800'] },
+  { id: 'q3200-ports', label: 'Quantum-X800 Q3200 switch', value: '36 × 800', unit: 'Gb/s', note: '2U air-cooled, 18 OSFP cages. NVIDIA positions it for large or mixed-generation environments.', sources: ['nv-xdr-switches', 'nv-ib-switching'] },
+  { id: 'xdr-copper-reach', label: 'Active copper reach at 1.6 Tb/s', value: '1.1 – 3', unit: 'm', note: 'OSFP active copper cable. Enough to cross a rack or reach the one beside it, and nothing further.', sources: ['nv-xdr-switches'] },
+  { id: 'xdr-optics-reach', label: 'Single-mode optical reach at 1.6 Tb/s', value: 'up to 500', unit: 'm', note: 'Twin-port 2×DR4 transceiver, 1310 nm single-mode fibre. Two orders of magnitude more reach than copper, at a power and cost premium per link.', sources: ['nv-xdr-switches'] },
+  { id: 'fat-tree-2tier', label: 'Endpoints in a two-tier fat tree', value: 'over 10,000', note: 'NVIDIA’s figure for Quantum-X800. The arithmetic behind it: a radix-144 switch with half its ports facing downward gives 144 × 72 = 10,368 endpoints before a third tier is needed.', sources: ['nv-ib-switching'] },
+  { id: 'superpod-rails', label: 'InfiniBand rails per compute tray', value: '4', note: 'One per GPU — the tray carries four ConnectX-7 NICs. Same-numbered GPUs across racks share a rail, so "traffic per rail of each compute tray is always one hop away from other compute trays in the same Scalable Unit".', sources: ['nv-superpod-components', 'nv-superpod-fabrics'] },
+  { id: 'slg-leaf', label: 'Leaf switches per spine-leaf group', value: '8', note: 'One for each compute rack.', sources: ['nv-superpod-fabrics'] },
+  { id: 'slg-spine', label: 'Spine switches per spine-leaf group', value: '6', note: 'Giving a fully non-blocking fat tree per Scalable Unit, attached to six core groups.', sources: ['nv-superpod-fabrics'] },
+  { id: 'superpod-bf3', label: 'BlueField-3 per compute tray', value: '2 × 200', unit: 'Gb/s', note: 'Separate from the compute fabric entirely: in-band management and storage. The scale-out GPU traffic never touches these.', sources: ['nv-superpod-components'] },
+  {
+    id: 'leaf-switches', label: 'Leaf switches at maximum scale', value: '128',
+    range: '128 (GB200 product page) vs 64 leaf and 384 spine (DGX GB200 SuperPOD reference architecture at 16 SUs)', disputed: true,
+    note: 'Almost certainly two different reference designs rather than a genuine contradiction — the product page and the SuperPOD architecture do not describe the same build. Do not mix the two figures inside one calculation.',
+    sources: ['nv-gb200', 'nv-superpod-fabrics'],
+  },
+  { id: 'sharp-v4', label: 'SHARP version on Quantum-X800', value: 'v4', note: 'In-network reduction on the scale-out switch. Distinct from, and composable with, the SHARP engines inside the in-rack NVSwitch.', sources: ['nv-quantum-x800'] },
+  { id: 'sn6600-ports', label: 'Spectrum SN6600 Ethernet switch', value: '128 × 800', unit: 'Gb/s', sources: ['nv-spectrumx'] },
+  { id: 'sn6800-ports', label: 'Spectrum SN6800 Ethernet switch', value: '512 × 800', unit: 'Gb/s', note: 'In a 5U chassis — the highest radix on either side of the InfiniBand/Ethernet line.', sources: ['nv-spectrumx'] },
+  { id: 'cx9', label: 'ConnectX-9 SuperNIC', value: '1,600', unit: 'Gb/s', announced: true, note: 'Per GPU, via four 200 Gb/s SerDes. Listed on NVIDIA’s Spectrum-X platform page; treat as announced rather than measured.', sources: ['nv-spectrumx'] },
+  { id: 'spectrumx-gain', label: 'Spectrum-X network performance claim', value: '1.6×', note: 'NVIDIA’s claim against standard Ethernet, published without a measured configuration alongside it — unlike the MLPerf figures elsewhere on this site, which name their setup. Quoted here as a vendor claim, not a result.', sources: ['nv-spectrumx'] },
+
   // ── Results ────────────────────────────────────────────────────────────
   { id: 'mlperf-405b', label: 'Llama 3.1 405B training time', value: '27.3', unit: 'min', note: 'MLPerf Training v5.0, 4 June 2025: 27.33 minutes on 2,496 Blackwell GPUs across 39 racks running 64 active GPUs each — not fully populated 72-GPU racks, which is why 2,496 does not divide by 72. CoreWeave puts an equivalent H100 setup at around 156 racks, assuming 32 GPUs per rack. A later round reached about 10 minutes on more than 5,000 Blackwell GPUs.', sources: ['coreweave-pr', 'mlcommons'] },
   { id: 'mlperf-nvfp4', label: 'Blackwell NVFP4 training speedup vs Hopper FP8', value: 'up to 3.2×', note: 'MLPerf Training v5.1, Llama 3.1 405B, at the same GPU count.', sources: ['nv-devblog-mlperf'] },
