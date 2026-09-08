@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { chapters, numbered, siblings } from '../data/chapters';
+import { parts, refs, siblings, partOf, kickerFor } from '../data/chapters';
 
 interface Props {
   title: string;
@@ -19,8 +19,21 @@ const path = Astro.url.pathname
   .replace(/index\.html$/, '')
   .replace(/\.html$/, '')
   .replace(/\/$/, '') || '/';
-const { prev, next } = slug ? siblings(slug) : { prev: undefined, next: undefined };
+const { prev, next, crossesPrev, crossesNext } = slug ? siblings(slug) : {};
 const step = siblings(path);
+/**
+ * Undefined on /glossary, /sources and /404 — which is exactly what leaves
+ * both switch pills and every stepper dot un-current on those pages.
+ */
+const active = partOf(slug ?? path);
+/** Reference pages fall back to Part I's stepper rather than losing it. */
+const shown = active ?? parts[0];
+/**
+ * Derived, because per-part numbering makes a hand-written kicker wrong: two
+ * chapters legitimately claim "Chapter 03". The prop still wins where a page
+ * is not a numbered chapter at all.
+ */
+const kick = kicker ?? kickerFor(slug ?? path);
 const full = `${title} · NVL72`;
 ---
 <html lang="en" data-depth="2">
@@ -61,36 +74,65 @@ const full = `${title} · NVL72`;
     <header class="masthead">
       <div class="wrap">
         <a class="brand" href="/">NVL<b>72</b>.dev</a>
-        <nav class="stepper" aria-label="Chapters">
+
+        <!--
+          Two real links, not a tablist: activating one loads a different
+          document, so the tab contract would be a lie. aria-current is "true"
+          rather than "page" because the active pill points at its part's first
+          chapter, which is usually not the page you are on — and "page" would
+          put two aria-current="page" in one header.
+        -->
+        <nav class="part-switch" aria-label="Parts">
+          {parts.map((p) => (
+            <a href={p.chapters[0].slug}
+               aria-current={p.id === active?.id ? 'true' : undefined}
+               title={p.blurb}>
+              <span class="visually-hidden">{p.ordinal}: </span>{p.label}
+            </a>
+          ))}
+        </nav>
+
+        <nav class="stepper" aria-label={`Chapters — ${shown.ordinal}: ${shown.label}`}>
           <ol>
-            {numbered.map((c) => (
+            {shown.chapters.map((c) => (
               <li>
                 <a href={c.slug} aria-current={c.slug === path ? 'page' : undefined}>
                   <span class="dot" aria-hidden="true">{c.n}</span>
                   <span class="name">{c.title}</span>
-                  <span class="visually-hidden">Chapter {c.n}: {c.title}</span>
+                  <span class="visually-hidden">{shown.ordinal}, chapter {c.n}: {c.title}</span>
                 </a>
               </li>
             ))}
           </ol>
           <div class="step-arrows">
             {step.prev ? (
-              <a href={step.prev.slug} rel="prev" aria-label={`Previous: ${step.prev.title}`}>
+              <a href={step.prev.slug} rel="prev"
+                 aria-label={step.crossesPrev
+                   ? `Previous: ${partOf(step.prev.slug)!.ordinal}, ${step.prev.title}`
+                   : `Previous: ${step.prev.title}`}>
                 <span aria-hidden="true">‹</span>
-                <span class="name">{step.prev.title}</span>
+                <span class="name">
+                  {step.crossesPrev && `${partOf(step.prev.slug)!.ordinal} · `}{step.prev.title}
+                </span>
               </a>
             ) : <span class="is-off" aria-hidden="true">‹</span>}
             {step.next ? (
-              <a href={step.next.slug} rel="next" aria-label={`Next: ${step.next.title}`}>
+              <a href={step.next.slug} rel="next"
+                 aria-label={step.crossesNext
+                   ? `Next: ${partOf(step.next.slug)!.ordinal}, ${step.next.title}`
+                   : `Next: ${step.next.title}`}>
                 <span aria-hidden="true">›</span>
-                <span class="name">{step.next.title}</span>
+                <span class="name">
+                  {step.crossesNext && `${partOf(step.next.slug)!.ordinal} · `}{step.next.title}
+                </span>
               </a>
             ) : <span class="is-off" aria-hidden="true">›</span>}
           </div>
 
           <span class="rule" aria-hidden="true"></span>
-          <a class="ref" href="/glossary" aria-current={path === '/glossary' ? 'page' : undefined}>Glossary</a>
-          <a class="ref" href="/sources" aria-current={path === '/sources' ? 'page' : undefined}>Sources</a>
+          {refs.map((r) => (
+            <a class="ref" href={r.slug} aria-current={r.slug === path ? 'page' : undefined}>{r.nav}</a>
+          ))}
         </nav>
         <div class="controls">
           <div class="depth-menu" data-depth-menu>
@@ -112,7 +154,7 @@ const full = `${title} · NVL72`;
     <main id="main">
       {heading && (
         <div class="wrap page-head">
-          {kicker && <p class="kicker">{kicker}</p>}
+          {kick && <p class="kicker">{kick}</p>}
           <h1>{heading}</h1>
         </div>
       )}
@@ -121,10 +163,18 @@ const full = `${title} · NVL72`;
         {slug && (prev || next) && (
           <nav class="chapter-nav" aria-label="Chapter navigation">
             {prev ? (
-              <a href={prev.slug} rel="prev"><span class="dir">← Previous</span><span class="ttl">{prev.title}</span></a>
+              <a href={prev.slug} rel="prev">
+                <span class="dir">← Previous</span>
+                <span class="ttl">{prev.title}</span>
+                {crossesPrev && <span class="part">{partOf(prev.slug)!.ordinal} · {partOf(prev.slug)!.label}</span>}
+              </a>
             ) : <span />}
             {next && (
-              <a class="next" href={next.slug} rel="next"><span class="dir">Next →</span><span class="ttl">{next.title}</span></a>
+              <a class="next" href={next.slug} rel="next">
+                <span class="dir">Next →</span>
+                <span class="ttl">{next.title}</span>
+                {crossesNext && <span class="part">{partOf(next.slug)!.ordinal} · {partOf(next.slug)!.label}</span>}
+              </a>
             )}
           </nav>
         )}
@@ -143,14 +193,18 @@ const full = `${title} · NVL72`;
             No NVIDIA artwork, branding, or CAD is reproduced.
           </p>
         </div>
-        <div>
-          <p><strong>Chapters</strong></p>
-          <p>{chapters.slice(0, 6).map((c) => <><a href={c.slug}>{c.nav}</a><br /></>)}</p>
-        </div>
-        <div>
-          <p><strong>&nbsp;</strong></p>
-          <p>{chapters.slice(6).map((c) => <><a href={c.slug}>{c.nav}</a><br /></>)}</p>
-        </div>
+        {parts.map((p) => (
+          <div>
+            <p><strong>{p.ordinal} · {p.label}</strong></p>
+            <p>{p.chapters.map((c) => <><a href={c.slug}>{c.nav}</a><br /></>)}</p>
+            {p === parts[parts.length - 1] && (
+              <>
+                <p><strong>Reference</strong></p>
+                <p>{refs.map((c) => <><a href={c.slug}>{c.nav}</a><br /></>)}</p>
+              </>
+            )}
+          </div>
+        ))}
         <div>
           <p><strong>About</strong></p>
           <p>

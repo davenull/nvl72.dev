@@ -7,7 +7,7 @@ import L from '../components/L.astro';
 import Cite from '../components/Cite.astro';
 import Callout from '../components/Callout.astro';
 import Deeper from '../components/Deeper.astro';
-import { numbered } from '../data/chapters';
+import { parts } from '../data/chapters';
 ---
 <Base
   title="One Giant GPU"
@@ -187,16 +187,20 @@ import { numbered } from '../data/chapters';
       manipulable, not to be the sole carrier of a fact.
     </p>
 
-    <h2 id="chapters">Chapters</h2>
-
-    <nav class="chapter-index bleed" aria-label="All chapters">
-      {numbered.map((c) => (
-        <a href={c.slug}>
-          <span class="n">{String(c.n).padStart(2, '0')}</span>
-          <span class="ttl">{c.title}</span>
-          <span class="blurb">{c.blurb}</span>
-        </a>
-      ))}
-    </nav>
+    {parts.map((p) => (
+      <Fragment>
+        <h2 id={p.id}>{p.ordinal} · {p.label}</h2>
+        <p>{p.blurb}</p>
+        <nav class="chapter-index bleed" aria-label={`${p.ordinal}: ${p.label}`}>
+          {p.chapters.map((c) => (
+            <a href={c.slug}>
+              <span class="n">{String(c.n).padStart(2, '0')}</span>
+              <span class="ttl">{c.title}</span>
+              <span class="blurb">{c.blurb}</span>
+            </a>
+          ))}
+        </nav>
+      </Fragment>
+    ))}
   </div>
 </Base>
