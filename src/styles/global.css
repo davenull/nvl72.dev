@@ -760,8 +760,7 @@ code { font-family: var(--mono); font-size: 0.875em; background: var(--bg-sunk);
 }
 .rack-height input[type='range'] {
   flex: 1; width: 1.5rem; margin: 0; pointer-events: auto;
-  /* `orient` covers Firefox; writing-mode is what everything else honours.
-     rtl puts the maximum — the top of the rack — at the top of the track. */
+  /* rtl puts the maximum — the top of the rack — at the top of the track. */
   writing-mode: vertical-lr;
   direction: rtl;
   -webkit-appearance: none;
@@ -792,7 +791,33 @@ code { font-family: var(--mono); font-size: 0.875em; background: var(--bg-sunk);
 }
 .rack-height input[type='range']:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--copper); outline-offset: 2px; }
 
+/* On a narrow screen a 20px-wide vertical track is an unusable touch target
+   and the horizontal room is worth more, so the same single input turns into a
+   horizontal control along the foot of the stage. Reversing the flex order
+   keeps "base" on the left, where a low value belongs. */
 @media (max-width: 720px) {
-  /* Too narrow to give up horizontal room, and the tour covers the same ground. */
-  .rack-height { display: none; }
+  .rack-height {
+    inset: auto 0.85rem 0.6rem 0.85rem;
+    flex-direction: row-reverse;
+    gap: 0.5rem;
+    /* Sits over the model, so it needs a ground of its own — otherwise the
+       track reads as a line drawn through the rack. Matches the badge. */
+    background: color-mix(in oklab, var(--bg-sunk) 86%, transparent);
+    backdrop-filter: blur(6px);
+    border-radius: 999px;
+    padding: 0.1rem 0.7rem;
+  }
+  .rack-height input[type='range'] {
+    flex: 1; width: auto; height: 1.6rem;
+    writing-mode: horizontal-tb;
+    direction: ltr;
+  }
+  .rack-height input[type='range']::-webkit-slider-runnable-track { width: auto; height: 3px; }
+  .rack-height input[type='range']::-webkit-slider-thumb {
+    width: 18px; height: 18px; margin-left: 0; margin-top: -7.5px;
+  }
+  .rack-height input[type='range']::-moz-range-track { width: auto; height: 3px; }
+  .rack-height input[type='range']::-moz-range-thumb { width: 18px; height: 18px; }
+  /* The badge would sit under the slider, so it moves to the top of the stage. */
+  .rack-badge { top: 0.85rem; bottom: auto; }
 }
