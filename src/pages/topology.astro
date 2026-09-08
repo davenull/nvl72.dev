@@ -1,0 +1,371 @@
+---
+import Base from '../layouts/Base.astro';
+import S from '../components/S.astro';
+import T from '../components/T.astro';
+import L from '../components/L.astro';
+import Cite from '../components/Cite.astro';
+import Callout from '../components/Callout.astro';
+import Deeper from '../components/Deeper.astro';
+import Widget from '../components/Widget.astro';
+import SpecTable from '../components/SpecTable.astro';
+---
+<Base
+  title="Fat-Trees & Rails"
+  description="Switch radix sets how many endpoints fit, oversubscription is what you sell to save money, and rail alignment is what makes a collective cheap."
+  heading="Fat-Trees, Rails and Oversubscription"
+  slug="/topology"
+>
+  <div class="prose">
+    <p class="lede">
+      A fabric's shape is not an aesthetic choice. Given a switch with a fixed number of ports,
+      the shape determines how many endpoints you can reach, how many hops away they are, how much
+      optics you buy, and whether an all-reduce runs at full speed or at a quarter of it.
+    </p>
+
+    <h2 id="fat-tree">Why a tree, and why a fat one</h2>
+
+    <L at={1}>
+      <p>
+        Switches have a fixed number of sockets. A Q3400 has 144. If you need to connect more
+        machines than that, you have to connect switches to each other — and now some of those 144
+        sockets are used up talking to other switches instead of to machines.
+      </p>
+      <p>
+        Arrange them in a tree and a problem appears: everything at the bottom eventually has to
+        squeeze through the top. A <em>fat</em> tree fixes that by making the upper branches as
+        thick as everything below them, so nothing narrows on the way up. That is more switches
+        and far more cable than a thin tree — and it is the difference between a network that
+        slows down when everyone talks at once and one that does not.
+      </p>
+    </L>
+
+    <L min={2}>
+      <p>
+        The arithmetic is simple enough to do in your head. Take a switch of radix <em>k</em> and
+        point half its ports down at endpoints and half up at the tier above. A two-tier fat tree
+        then holds <em>k</em> × <em>k</em>/2 endpoints: at <em>k</em> = 144 that is
+        144 × 72 = 10,368, which is why NVIDIA quotes
+        <S id="fat-tree-2tier" /> for a two-level fat tree on
+        Quantum-X800.<Cite ids="nv-ib-switching" />
+      </p>
+      <p>
+        The property that matters is uniformity. Every endpoint is the same number of hops from
+        every other, and every pair has a path that does not contend with every other pair. For a
+        collective — whose completion time is set by its slowest participant — a uniform fabric
+        is worth more than a fast but lumpy one.
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        Radix is the lever with the most leverage, because tiers multiply cost non-linearly. Each
+        additional tier adds two hops to every cross-fabric path, adds a full set of switches, and
+        — since inter-tier links cross rows — turns copper into optics. Doubling radix from 72 to
+        144 quadruples two-tier capacity, which is why switch vendors chase port count rather than
+        per-port rate alone.
+      </p>
+      <p>
+        It is also why NVIDIA's fabrics are not only fat trees. The reference architecture notes
+        support for "fat-tree, Dragonfly, and multi-dimensional Torus" topologies.<Cite ids="nv-superpod-fabrics" />
+        Fat trees dominate for AI because they are uniform and because collectives are the
+        workload; the alternatives trade uniformity for cable count at very large scale.
+      </p>
+    </L>
+  </div>
+
+  <Widget
+    title="Topology builder"
+    hint="Set radix, tiers and oversubscription"
+    caption="Standard fat-tree arithmetic, computed live rather than looked up: endpoints = k × (k/2)^(tiers−1) adjusted for the downward share, with switch and cable counts following. It is exact for the idealised topology and ignores the practicalities — spare ports for management, failure domains, and the fact that real builds round to whole racks."
+  >
+    <div data-topo>
+      <svg class="diagram" viewBox="0 0 720 220" role="img"
+        aria-label="A schematic fat tree whose tier count and width change with the selected radix and oversubscription, with the resulting endpoint, switch and cable counts.">
+        <g data-tree></g>
+      </svg>
+      <dl class="readout" style="margin-top:0.75rem">
+        <div><dt>Endpoints</dt><dd data-out="ep">10,368</dd></div>
+        <div><dt>Leaf switches</dt><dd data-out="leaf">144</dd></div>
+        <div><dt>Spine switches</dt><dd data-out="spine">72</dd></div>
+        <div><dt>Inter-tier cables</dt><dd data-out="cables">10,368</dd></div>
+        <div><dt>Worst-case bisection</dt><dd data-out="bisect">100%</dd></div>
+        <div><dt>Hops, worst case</dt><dd data-out="hops">4</dd></div>
+      </dl>
+      <p data-out="verdict" style="margin:0.9rem 0 0;font-size:0.875rem;color:var(--ink-2)"></p>
+    </div>
+    <div slot="controls" class="controls-row">
+      <div class="seg" role="group" aria-label="Switch radix">
+        <button type="button" data-radix="36" aria-pressed="false">Radix 36</button>
+        <button type="button" data-radix="64" aria-pressed="false">Radix 64</button>
+        <button type="button" data-radix="144" aria-pressed="true">Radix 144</button>
+      </div>
+      <div class="seg" role="group" aria-label="Tiers">
+        <button type="button" data-tiers="2" aria-pressed="true">Two tiers</button>
+        <button type="button" data-tiers="3" aria-pressed="false">Three tiers</button>
+      </div>
+      <div class="seg" role="group" aria-label="Oversubscription">
+        <button type="button" data-over="1" aria-pressed="true">1:1</button>
+        <button type="button" data-over="2" aria-pressed="false">2:1</button>
+        <button type="button" data-over="4" aria-pressed="false">4:1</button>
+      </div>
+    </div>
+  </Widget>
+
+  <div class="prose">
+    <h2 id="oversubscription">The thing you sell to save money</h2>
+
+    <L min={2}>
+      <p>
+        <T id="oversubscription">Oversubscription</T> means fitting less upward capacity than
+        downward — pointing more of each leaf's ports at endpoints and fewer at the tier above. A
+        2:1 upper tier roughly halves the spine switches and the optics between tiers, which on a
+        fabric of this size is a very large number.
+      </p>
+      <p>
+        It is invisible to traffic that stays local, which is most enterprise traffic and almost
+        none of this. An all-reduce is the pattern in which every endpoint transmits across the
+        fabric simultaneously — precisely the case oversubscription bets against. Which is why AI
+        fabrics are usually built non-blocking where general-purpose data-centre fabrics are not,
+        and why the SuperPOD design is explicit about being "a fully non-blocking fat tree
+        topology for each SU".<Cite ids="nv-superpod-fabrics" />
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        <T id="bisection">Bisection bandwidth</T> is the honest measure and aggregate bandwidth is
+        the flattering one. Aggregate counts every link in the fabric, including the ones a
+        given traffic pattern will never use; bisection counts only what crosses the worst-case
+        cut, which is exactly what an all-to-all has to push through.
+      </p>
+      <p>
+        Note what <a href="/routing#adaptive">adaptive routing</a> can and cannot do about it. It
+        chooses among paths that exist, so on an oversubscribed fabric it will distribute
+        contention evenly across uplinks that are collectively too few. Even distribution of an
+        inadequate resource is still inadequate. Oversubscription is a capacity decision, not a
+        scheduling one, and no amount of cleverness at run time recovers it.
+      </p>
+    </L>
+
+    <h2 id="rails">Rails: making the common case one hop</h2>
+
+    <L at={1}>
+      <p>
+        Here is a trick that costs nothing and saves a great deal. Each compute tray has four
+        network connections, one per GPU. Instead of wiring them arbitrarily, wire GPU number one
+        in every rack to the same switch, GPU number two in every rack to a second switch, and so
+        on.
+      </p>
+      <p>
+        Now when the GPUs numbered one across the whole cluster want to talk to each other — which
+        is exactly what they do during a collective — they are all already plugged into the same
+        switch. The traffic never climbs the tree at all.
+      </p>
+    </L>
+
+    <L min={2}>
+      <p>
+        That is <T id="rail-optimised">rail alignment</T>. A compute tray carries
+        <S id="superpod-rails" /> — one per GPU — and racks are rail-aligned so that, in NVIDIA's
+        words, "traffic per rail of each compute tray is always one hop away from other compute
+        trays in the same Scalable Unit".<Cite ids="nv-superpod-fabrics" />
+      </p>
+      <p>
+        The structure follows from it. Each Scalable Unit contains four spine-leaf groups, one per
+        rail, and each group has <S id="slg-leaf" /> — one per compute rack — and
+        <S id="slg-spine" />.<Cite ids="nv-superpod-fabrics" /> The rail count and the group count
+        are the same number for the same reason.
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        This is the scale-out restatement of the trick that makes the in-rack fabric single-layer.
+        <a href="/nvlink#arithmetic">Chapter 5 of Part I</a> matches NVLink port <em>n</em> on
+        every GPU to NVSwitch <em>n</em>, so any peer is one hop away. Rail alignment matches NIC
+        <em>n</em> on every tray to leaf switch <em>n</em>, so any same-indexed peer is one hop
+        away. Same reasoning, one tier out: collectives dominate, so build the topology the
+        collective wants rather than a general-purpose one.
+      </p>
+      <p>
+        It also pays for itself physically. A rail hop is tray-to-leaf, which the layout can
+        usually keep inside <a href="/switches-optics#reach">the copper envelope</a>; a hop across
+        tiers crosses rows and must go optical. Rail alignment converts the dominant traffic of a
+        collective into the cheapest link in the building.
+      </p>
+    </L>
+
+    <Callout kind="key">
+      <p>
+        Three levers, in descending order of how much they matter here: build it non-blocking,
+        because collectives make everyone talk at once; align the rails, because that makes the
+        dominant pattern a single hop; and pick the highest radix you can, because tiers cost two
+        hops and a building's worth of optics each.
+      </p>
+    </Callout>
+
+    <h2 id="numbers">Topology figures</h2>
+
+    <SpecTable
+      caption="Fabric structure"
+      ids={['fat-tree-2tier', 'superpod-rails', 'slg-leaf', 'slg-spine', 'superpod-bf3', 'leaf-switches', 'max-gpus']}
+    />
+
+    <Deeper title="One switch count this site will not state confidently">
+      <p>
+        The GB200 product page puts the maximum fabric at <S id="max-gpus" /> GPUs with 128 leaf
+        switches. The DGX GB200 SuperPOD reference architecture, describing sixteen Scalable
+        Units, implies a different arrangement — 64 leaf and 384 spine.<Cite ids={['nv-gb200', 'nv-superpod-fabrics']} />
+      </p>
+      <p>
+        These are almost certainly two different reference designs rather than a contradiction: a
+        product-page maximum and a specific validated architecture do not have to describe the
+        same build. But "almost certainly" is not the standard this site holds itself to, so
+        <S id="leaf-switches" /> is marked disputed and shows both. The practical instruction is
+        the useful part: do not mix the two figures inside one calculation.
+      </p>
+    </Deeper>
+  </div>
+
+  <script>
+    const root = document.querySelector<HTMLElement>('[data-topo]');
+    if (root) {
+      const fig = root.closest('figure')!;
+      const NS = 'http://www.w3.org/2000/svg';
+      const tree = root.querySelector('[data-tree]')!;
+      const out = (k: string) => fig.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+      const el = (n: string, a: Record<string, string | number>) => {
+        const e = document.createElementNS(NS, n);
+        for (const k in a) e.setAttribute(k, String(a[k]));
+        return e;
+      };
+
+      let radix = 144, tiers = 2, over = 1;
+
+      const model = () => {
+        /*
+         * Split each leaf's ports between endpoints and uplinks. At 1:1 the
+         * split is even; an oversubscription of n:1 points n times as many
+         * ports downward as upward.
+         */
+        const up = Math.floor(radix / (over + 1));
+        const down = radix - up;
+
+        if (tiers === 2) {
+          const leaf = radix;               // limited by spine radix
+          const spine = up;
+          return {
+            endpoints: leaf * down, leaf, spine,
+            cables: leaf * up, hops: 4,
+            bisection: 1 / over,
+          };
+        }
+        // Three tiers: each pod is a two-tier fat tree, and pods attach to a core.
+        const perPod = down * down;
+        const pods = radix;
+        return {
+          endpoints: perPod * pods, leaf: pods * down, spine: pods * up,
+          cables: pods * down * up * 2, hops: 6,
+          bisection: 1 / over,
+        };
+      };
+
+      const fmt = (n: number) => n.toLocaleString();
+
+      const render = () => {
+        const m = model();
+        out('ep').textContent = fmt(m.endpoints);
+        out('leaf').textContent = fmt(m.leaf);
+        out('spine').textContent = fmt(m.spine);
+        out('cables').textContent = fmt(m.cables);
+        out('bisect').textContent = Math.round(m.bisection * 100) + '%';
+        out('hops').textContent = String(m.hops);
+
+        const parts: string[] = [];
+        parts.push(`A radix-${radix} switch in ${tiers} tiers at ${over}:1 reaches ${fmt(m.endpoints)} endpoints.`);
+        if (over === 1) {
+          parts.push('Non-blocking: every endpoint can transmit across the fabric at once without contending, which is the only configuration an all-reduce is indifferent to.');
+        } else {
+          parts.push(`At ${over}:1 the upper tier carries ${Math.round(m.bisection * 100)}% of what the endpoints below it can offer. Local traffic will not notice; a collective will, because a collective is the case where everyone transmits at once.`);
+        }
+        if (tiers === 3) {
+          parts.push('The third tier adds two hops to every cross-fabric path and a full set of switches — and those links cross rows, so they are optical rather than copper.');
+        }
+        out('verdict').textContent = parts.join(' ');
+
+        // ── Draw ──────────────────────────────────────────────────────
+        tree.textContent = '';
+        const rows = tiers === 3
+          ? [{ y: 20, n: 6, label: 'core', fill: 'var(--switch)' },
+             { y: 76, n: 10, label: 'spine', fill: 'var(--switch)' },
+             { y: 132, n: 14, label: 'leaf', fill: 'var(--cyan)' }]
+          : [{ y: 40, n: 8, label: 'spine', fill: 'var(--switch)' },
+             { y: 116, n: 14, label: 'leaf', fill: 'var(--cyan)' }];
+
+        rows.forEach((row, ri) => {
+          const w = 640 / row.n;
+          for (let i = 0; i < row.n; i++) {
+            tree.appendChild(el('rect', { x: 40 + i * w + 3, y: row.y, width: w - 6, height: 18,
+              rx: 3, fill: row.fill, opacity: 0.85 }));
+          }
+          const t = el('text', { x: 32, y: row.y + 13, 'text-anchor': 'end', fill: 'var(--ink-3)' });
+          t.textContent = row.label;
+          tree.appendChild(t);
+
+          // Uplinks to the tier above, thinned to show oversubscription.
+          if (ri > 0) {
+            const above = rows[ri - 1];
+            const shown = Math.max(1, Math.round(6 / over));
+            for (let i = 0; i < row.n; i++) {
+              for (let j = 0; j < shown; j++) {
+                const tgt = (i + j) % above.n;
+                tree.appendChild(el('line', {
+                  x1: 40 + i * w + w / 2, y1: row.y,
+                  x2: 40 + tgt * (640 / above.n) + (640 / above.n) / 2, y2: above.y + 18,
+                  stroke: 'var(--line-strong)', 'stroke-width': 0.7,
+                  opacity: over === 1 ? 0.5 : 0.75,
+                }));
+              }
+            }
+          }
+        });
+
+        // Endpoints under the leaf row.
+        const leafRow = rows[rows.length - 1];
+        const w = 640 / leafRow.n;
+        for (let i = 0; i < leafRow.n; i++) {
+          for (let j = 0; j < 3; j++) {
+            tree.appendChild(el('rect', { x: 40 + i * w + 4 + j * 10, y: leafRow.y + 30,
+              width: 7, height: 14, rx: 2, fill: 'var(--gpu)', opacity: 0.7 }));
+          }
+          tree.appendChild(el('line', { x1: 40 + i * w + w / 2, y1: leafRow.y + 18,
+            x2: 40 + i * w + w / 2, y2: leafRow.y + 30, stroke: 'var(--line-strong)',
+            'stroke-width': 0.7, opacity: 0.5 }));
+        }
+        const epLabel = el('text', { x: 32, y: leafRow.y + 41, 'text-anchor': 'end', fill: 'var(--ink-3)' });
+        epLabel.textContent = 'GPUs';
+        tree.appendChild(epLabel);
+
+        const note = el('text', { x: 360, y: leafRow.y + 66, 'text-anchor': 'middle', fill: 'var(--ink-3)' });
+        note.textContent = 'schematic — widths are illustrative, the counts are in the readout';
+        tree.appendChild(note);
+      };
+
+      const wireSeg = (attr: string, apply: (v: string) => void) => {
+        fig.querySelectorAll<HTMLButtonElement>(`[data-${attr}]`).forEach((b) => {
+          b.addEventListener('click', () => {
+            apply(b.dataset[attr]!);
+            fig.querySelectorAll<HTMLButtonElement>(`[data-${attr}]`).forEach((o) =>
+              o.setAttribute('aria-pressed', String(o === b)));
+            render();
+          });
+        });
+      };
+      wireSeg('radix', (v) => { radix = Number(v); });
+      wireSeg('tiers', (v) => { tiers = Number(v); });
+      wireSeg('over', (v) => { over = Number(v); });
+
+      render();
+    }
+  </script>
+</Base>

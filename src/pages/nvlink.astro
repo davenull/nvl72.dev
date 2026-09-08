@@ -42,7 +42,7 @@ import SpecTable from '../components/SpecTable.astro';
         Each Blackwell GPU exposes <S id="nvlink-links" /> NVLink 5 ports at 100 GB/s
         bidirectional, totalling <S id="nvlink-per-gpu" />. Each NVSwitch tray carries two
         NVSwitch5 ASICs, and with <S id="switch-trays" /> trays that is
-        <S id="switch-asics" /> ASICs — exactly the port count per GPU.<Cite ids="nv-nvlink" />
+        <S id="switch-asics" /> ASICs — exactly the port count per GPU.<Cite ids={['nv-nvlink', 'glennklockwood']} />
       </p>
       <p>
         Connect port <em>n</em> of each GPU to switch <em>n</em>, and every switch sees all 72

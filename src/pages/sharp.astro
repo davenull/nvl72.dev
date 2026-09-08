@@ -1,0 +1,302 @@
+---
+import Base from '../layouts/Base.astro';
+import S from '../components/S.astro';
+import T from '../components/T.astro';
+import L from '../components/L.astro';
+import Cite from '../components/Cite.astro';
+import Callout from '../components/Callout.astro';
+import Deeper from '../components/Deeper.astro';
+import Widget from '../components/Widget.astro';
+---
+<Base
+  title="Collectives on the Wire"
+  description="An all-reduce that reduces inside the switch ASIC instead of at the endpoints stops generating most of its own traffic — the trick NVSwitch plays in the rack, played again one tier out."
+  heading="Collectives on the Wire"
+  slug="/sharp"
+>
+  <div class="prose">
+    <p class="lede">
+      Everything so far has been about carrying bytes faster or more reliably. This chapter is
+      about not carrying them at all: if the switch can do the arithmetic as the data passes
+      through, most of the traffic a collective would have generated never exists.
+    </p>
+
+    <h2 id="allreduce">The operation that dominates</h2>
+
+    <L at={1}>
+      <p>
+        Training works like this: every GPU computes a suggested adjustment to the model, and then
+        all of them have to agree on the sum of those suggestions before anyone can continue. That
+        agreement is called an all-reduce, and it happens constantly.
+      </p>
+      <p>
+        The obvious way to do it is to pass partial totals around a circle until everyone has seen
+        everything, which means the same numbers cross the network many times. The clever way is
+        to let the network add them up on the way past — so each GPU sends its contribution once,
+        and gets the answer back.
+      </p>
+    </L>
+
+    <L min={2}>
+      <p>
+        An all-reduce combines one value per participant and delivers the result to all of them.
+        Its cost is the reason interconnect matters at all in training, and there are three ways
+        to pay it.
+      </p>
+      <p>
+        A <strong>ring</strong> passes partial sums around a cycle: bandwidth-optimal in total
+        bytes but with a step count proportional to the number of participants, so latency grows
+        linearly. A <strong>tree</strong> reduces up and broadcasts down in logarithmic steps —
+        far better latency, at the cost of more total traffic. Both do the arithmetic at the
+        endpoints, which means every intermediate result travels the fabric.
+      </p>
+      <p>
+        <T id="sharp">SHARP</T> does it in the switch. Partial results are combined inside the
+        ASIC as they pass through, so an endpoint sends its contribution once and receives the
+        answer once, and the intermediate values never appear on the wire at all.
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        The point worth carrying is that this is a <em>traffic elimination</em> mechanism, not a
+        transport optimisation. Ring and tree both move the same data repeatedly and differ only
+        in how they schedule it; in-network reduction changes how many bytes exist. That is why it
+        composes with everything else rather than competing with it.
+      </p>
+      <p>
+        It composes with itself, too. <a href="/nvlink#sharp">Chapter 5 of Part I</a> describes
+        SHARP engines inside the in-rack NVSwitch; Quantum-X800 carries
+        <S id="sharp-v4" /> on the scale-out switch.<Cite ids="nv-quantum-x800" /> A cluster-wide
+        all-reduce can therefore reduce within each rack over NVLink first and then across racks
+        over InfiniBand — two tiers of in-network reduction, so what crosses the expensive tier is
+        one value per rack rather than one per GPU.
+      </p>
+    </L>
+  </div>
+
+  <Widget
+    title="All-reduce cost"
+    hint="Scale it up · switch the algorithm"
+    caption="Standard first-order cost models, measured as bytes each GPU puts on the wire and dependent steps it waits on: ring is 2(N−1)/N × payload over 2(N−1) steps, tree is payload × log₂N over 2·log₂N steps, and in-network reduction is one payload over two steps. Real implementations pipeline, chunk and overlap, so treat these as ratios and growth rates rather than predictions — which is where the argument lives anyway."
+  >
+    <div data-allreduce>
+      <svg class="diagram" viewBox="0 0 720 250" role="img"
+        aria-label="A comparison of ring, tree and in-network all-reduce, showing bytes crossing the fabric and step count as the number of participating GPUs grows.">
+        <g data-plot></g>
+      </svg>
+      <dl class="readout" style="margin-top:0.75rem">
+        <div><dt>Participants</dt><dd data-out="n">576</dd></div>
+        <div><dt>Payload each</dt><dd data-out="payload">256 MB</dd></div>
+        <div><dt>Algorithm</dt><dd data-out="algo">In-network</dd></div>
+        <div><dt>Bytes per GPU</dt><dd data-out="bytes">512 MB</dd></div>
+        <div><dt>Steps</dt><dd data-out="steps">2</dd></div>
+        <div><dt>Versus ring</dt><dd data-out="ratio">1.0×</dd></div>
+      </dl>
+      <p data-out="verdict" style="margin:0.9rem 0 0;font-size:0.875rem;color:var(--ink-2)"></p>
+    </div>
+    <div slot="controls" class="controls-row">
+      <div class="ctl">
+        <label for="n">Participating GPUs<output data-out="n-lbl">576</output></label>
+        <input type="range" id="n" data-n min="0" max="100" value="62" />
+      </div>
+      <div class="ctl">
+        <label for="pl">Payload per GPU<output data-out="pl-lbl">256 MB</output></label>
+        <input type="range" id="pl" data-pl min="0" max="100" value="50" />
+      </div>
+      <div class="seg" role="group" aria-label="Algorithm">
+        <button type="button" data-algo="ring" aria-pressed="false">Ring</button>
+        <button type="button" data-algo="tree" aria-pressed="false">Tree</button>
+        <button type="button" data-algo="sharp" aria-pressed="true">In-network</button>
+      </div>
+    </div>
+  </Widget>
+
+  <div class="prose">
+    <h2 id="cost">What it costs the switch</h2>
+
+    <L min={2}>
+      <p>
+        In-network reduction is not free silicon. <a href="/nvlink#sharp">Part I</a> makes the
+        point about NVSwitch: an <S id="nvswitch-asic" /> ASIC looks underspecified beside a raw
+        51.2 Tb/s switch of the same era, and the difference is silicon that could have been ports
+        and went to reduction engines instead.
+      </p>
+      <p>
+        The same trade is made on the scale-out switch. You are buying arithmetic units, buffering
+        and the control logic to build aggregation trees, and paying for them in port count or die
+        area. It is a good trade exactly when collectives dominate your traffic — which is the
+        defining property of this workload and not of most others.
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        There is an operational dependency here worth naming. An aggregation tree has to be
+        constructed over the physical topology before it can be used, which requires something
+        that knows the topology — the <a href="/routing#sm">subnet manager</a>. In-network
+        reduction is therefore downstream of centralised routing: it is one of the capabilities
+        that a single authority over the fabric buys, and it is hard to offer on a fabric where
+        nobody has the whole map.
+      </p>
+      <p>
+        <T id="nccl">NCCL</T> is what actually selects among ring, tree and SHARP, from the
+        topology it discovers. Almost nothing above it makes that choice explicitly, which is why
+        fabric decisions surface to model engineers as throughput rather than as code — and why
+        a fabric that reports its topology accurately is worth more than one that merely runs
+        fast.
+      </p>
+    </L>
+
+    <Callout kind="key">
+      <p>
+        Ring optimises total bytes. Tree optimises step count. In-network reduction changes how
+        many bytes there are. That is why it is the only one of the three whose advantage
+        <em>grows</em> with the size of the job rather than trading against something else.
+      </p>
+    </Callout>
+
+    <Callout kind="myth">
+      <p>
+        <strong>"SHARP is an NVLink feature."</strong> It is a switch feature, and both tiers of
+        switch have it. The site said so only about NVSwitch until this chapter, which understated
+        it: <S id="sharp-v4" /> runs on the Quantum-X800 scale-out switch too, and the two compose
+        — reduce within the rack over NVLink, then across racks over InfiniBand.
+      </p>
+    </Callout>
+
+    <Deeper title="Why this changes what crosses the expensive tier">
+      <p>
+        Put the two tiers together with the numbers from
+        <a href="/scale-out">chapter 7 of Part I</a>. Inside a rack a GPU has
+        <S id="nvlink-egress" /> of egress; across racks it has <S id="cx8-egress" /> at best. The
+        scale-out tier is the scarce one by nine to eighteen times.
+      </p>
+      <p>
+        Reduce within each rack first and 72 contributions collapse to one before anything crosses
+        that boundary. For a 16-rack job that is 1,152 GPU contributions reduced to 16 rack
+        contributions on the expensive tier. The in-rack reduction is nearly free because it
+        happens where bandwidth is abundant; the expensive tier carries a seventy-second of what
+        it otherwise would. This is the clearest case on the site of two independent design
+        decisions — a coherent rack domain and an in-network-reduction fabric — multiplying rather
+        than merely adding.
+      </p>
+    </Deeper>
+  </div>
+
+  <script>
+    const root = document.querySelector<HTMLElement>('[data-allreduce]');
+    if (root) {
+      const fig = root.closest('figure')!;
+      const NS = 'http://www.w3.org/2000/svg';
+      const plot = root.querySelector('[data-plot]')!;
+      const out = (k: string) => fig.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+      const nSlider = fig.querySelector<HTMLInputElement>('[data-n]')!;
+      const plSlider = fig.querySelector<HTMLInputElement>('[data-pl]')!;
+      const el = (n: string, a: Record<string, string | number>) => {
+        const e = document.createElementNS(NS, n);
+        for (const k in a) e.setAttribute(k, String(a[k]));
+        return e;
+      };
+      let algo = 'sharp';
+
+      const nOf = () => Math.round(8 * Math.pow(9216 / 8, Number(nSlider.value) / 100));
+      const plOf = () => 1e6 * Math.pow(8000, Number(plSlider.value) / 100);
+      const fmtB = (b: number) => b >= 1e9 ? (b / 1e9).toFixed(2) + ' GB' : (b / 1e6).toFixed(0) + ' MB';
+
+      /*
+       * Standard first-order collective cost models. The metric is bytes each
+       * GPU puts on the wire, and the number of dependent steps it waits on.
+       *
+       *   ring  — 2(N-1)/N · S bytes over 2(N-1) steps: bandwidth-optimal
+       *           among endpoint algorithms, latency proportional to N.
+       *   tree  — S·log2(N) bytes over 2·log2(N) steps: trades bandwidth for
+       *           latency, because intermediate results cross the fabric again.
+       *   SHARP — S bytes over 2 steps: the contribution goes up once and the
+       *           result comes back, and no intermediate value is ever sent.
+       */
+      const models = (N: number, S: number) => ({
+        ring: { bytes: 2 * ((N - 1) / N) * S, steps: Math.max(1, 2 * (N - 1)), label: 'Ring' },
+        tree: { bytes: S * Math.log2(Math.max(2, N)), steps: Math.max(2, Math.ceil(2 * Math.log2(N))), label: 'Tree' },
+        sharp: { bytes: S, steps: 2, label: 'In-network' },
+      });
+
+      const render = () => {
+        const N = nOf(), S = plOf();
+        const m = models(N, S);
+        const cur = m[algo as keyof typeof m];
+
+        out('n').textContent = N.toLocaleString();
+        out('n-lbl').textContent = N.toLocaleString();
+        out('payload').textContent = fmtB(S);
+        out('pl-lbl').textContent = fmtB(S);
+        out('algo').textContent = cur.label;
+        out('bytes').textContent = fmtB(cur.bytes);
+        out('steps').textContent = cur.steps.toLocaleString();
+        out('ratio').textContent = (cur.bytes / m.ring.bytes).toFixed(2) + '×';
+
+        out('verdict').textContent = algo === 'sharp'
+          ? `At ${N.toLocaleString()} GPUs the in-network reduction still takes two steps and one payload per GPU, because neither depends on how many participants there are. That flatness is the whole point: ring needs ${m.ring.steps.toLocaleString()} steps at this scale, and tree ${(m.tree.bytes / m.sharp.bytes).toFixed(1)}× the bytes.`
+          : algo === 'ring'
+            ? `Ring moves the least data of the two endpoint algorithms, but its ${m.ring.steps.toLocaleString()} dependent steps at ${N.toLocaleString()} GPUs mean latency grows linearly with the job — and it still sends ${(m.ring.bytes / m.sharp.bytes).toFixed(1)}× what in-network reduction sends.`
+            : `Tree cuts the step count to ${m.tree.steps} by reducing up and broadcasting down, but every intermediate result crosses the fabric on the way — ${(m.tree.bytes / m.ring.bytes).toFixed(1)}× ring's bytes at this scale. It trades bandwidth for latency rather than removing either.`;
+
+        // ── Draw: bytes and steps side by side ────────────────────────
+        plot.textContent = '';
+        const keys = ['ring', 'tree', 'sharp'] as const;
+
+        const byteMax = Math.max(...keys.map((k) => m[k].bytes));
+        const stepMax = Math.max(...keys.map((k) => m[k].steps));
+
+        const heading = (x: number, t: string) => {
+          const e = el('text', { x, y: 14, fill: 'var(--ink-3)' });
+          e.textContent = t;
+          plot.appendChild(e);
+        };
+        heading(96, 'Bytes on the wire per GPU');
+        heading(430, 'Dependent steps (log scale)');
+
+        keys.forEach((k, i) => {
+          const y = 40 + i * 56;
+          const on = k === algo;
+          const name = el('text', { x: 88, y: y + 14, 'text-anchor': 'end',
+            fill: on ? 'var(--copper)' : 'var(--ink-3)' });
+          name.textContent = m[k].label;
+          plot.appendChild(name);
+
+          plot.appendChild(el('rect', { x: 96, y, width: Math.max(2, (m[k].bytes / byteMax) * 220),
+            height: 20, rx: 3, fill: on ? 'var(--copper)' : 'var(--line-strong)',
+            opacity: on ? 0.9 : 0.45 }));
+          const bl = el('text', { x: 102 + (m[k].bytes / byteMax) * 220, y: y + 14 });
+          bl.textContent = fmtB(m[k].bytes);
+          plot.appendChild(bl);
+
+          // Steps span four orders of magnitude between algorithms, so a linear
+          // bar would render in-network as nothing at all.
+          const w = (Math.log10(m[k].steps) / Math.log10(Math.max(10, stepMax))) * 200;
+          plot.appendChild(el('rect', { x: 430, y, width: Math.max(2, w), height: 20, rx: 3,
+            fill: on ? 'var(--gpu)' : 'var(--line-strong)', opacity: on ? 0.9 : 0.45 }));
+          const sl = el('text', { x: 436 + Math.max(2, w), y: y + 14 });
+          sl.textContent = m[k].steps.toLocaleString();
+          plot.appendChild(sl);
+        });
+
+        const foot = el('text', { x: 360, y: 226, 'text-anchor': 'middle', fill: 'var(--ink-3)' });
+        foot.textContent = `${N.toLocaleString()} GPUs · ${fmtB(S)} each`;
+        plot.appendChild(foot);
+      };
+
+      nSlider.addEventListener('input', render);
+      plSlider.addEventListener('input', render);
+      fig.querySelectorAll<HTMLButtonElement>('[data-algo]').forEach((b) => {
+        b.addEventListener('click', () => {
+          algo = b.dataset.algo!;
+          fig.querySelectorAll<HTMLButtonElement>('[data-algo]').forEach((o) =>
+            o.setAttribute('aria-pressed', String(o === b)));
+          render();
+        });
+      });
+      render();
+    }
+  </script>
+</Base>

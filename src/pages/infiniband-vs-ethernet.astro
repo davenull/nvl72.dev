@@ -1,0 +1,310 @@
+---
+import Base from '../layouts/Base.astro';
+import S from '../components/S.astro';
+import T from '../components/T.astro';
+import L from '../components/L.astro';
+import Cite from '../components/Cite.astro';
+import Callout from '../components/Callout.astro';
+import Deeper from '../components/Deeper.astro';
+import Widget from '../components/Widget.astro';
+import SpecTable from '../components/SpecTable.astro';
+---
+<Base
+  title="InfiniBand vs Ethernet"
+  description="Spectrum-X is Ethernet rebuilt to behave like InfiniBand. Where the two genuinely differ, where they no longer do, and what actually decides between them."
+  heading="InfiniBand versus Spectrum-X Ethernet"
+  slug="/infiniband-vs-ethernet"
+>
+  <div class="prose">
+    <p class="lede">
+      NVIDIA sells both, and a SuperPOD can be built either way. The interesting thing is how far
+      the Ethernet option has had to move toward InfiniBand to be viable here — and that what
+      remains different is mostly about who is in charge of the fabric rather than how fast it is.
+    </p>
+
+    <h2 id="same">What is already the same</h2>
+
+    <L min={2}>
+      <p>
+        Start with what does not distinguish them, because it is more than people expect.
+      </p>
+      <p>
+        The programming model is identical. <T id="roce">RoCE</T> carries the same RDMA semantics
+        over Ethernet: the same <T id="queue-pair">queue pairs</T>, the same
+        <T id="verbs">verbs</T>, the same registered regions. GPUDirect RDMA works over both, so a
+        GPU buffer is a valid target either way.<Cite ids="nv-gpudirect" /> Nothing above the
+        adapter is written differently.
+      </p>
+      <p>
+        Line rates match too: <S id="xdr-rate" /> per port on Quantum-X800, and 800 G ports on
+        Spectrum switches, with the same ConnectX-8 SuperNIC available on both
+        sides.<Cite ids={['nv-quantum-x800', 'nv-spectrumx']} /> Radix is comparable and in one
+        case better — a <S id="sn6800-ports" bare /> Gb/s SN6800 has the highest port count on
+        either side of the line.
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        That the programming model is shared is the fact that reframes the whole comparison. If
+        RDMA, GPUDirect and NCCL behave the same on both, then this is not a decision about
+        software portability and never was. It is a decision about the properties of the wire
+        underneath identical software — and about operations.
+      </p>
+    </L>
+  </div>
+
+  <Widget
+    title="Stack comparison"
+    hint="Switch the fabric · hover a row, click to keep it"
+    caption="Both columns are NVIDIA products, so this compares two deliberate designs rather than a vendor against a strawman. The Spectrum-X performance figures are vendor claims published without a measured configuration — unlike the MLPerf numbers elsewhere on this site, which name their setup — and are marked as claims."
+  >
+    <div data-compare>
+      <svg class="diagram" viewBox="0 0 720 300" role="img"
+        aria-label="A row-by-row comparison of InfiniBand and Spectrum-X Ethernet across flow control, routing, collectives, management, switch and adapter.">
+        <g data-rows></g>
+      </svg>
+      <div class="part-panel" data-cmp-panel aria-live="polite" style="border:1px solid var(--line);border-radius:var(--radius);margin-top:1rem">
+        <p class="idle">Hover a row, or click one to keep it.</p>
+      </div>
+    </div>
+    <div slot="controls" class="controls-row">
+      <div class="seg" role="group" aria-label="Fabric">
+        <button type="button" data-fab="ib" aria-pressed="true">InfiniBand</button>
+        <button type="button" data-fab="eth" aria-pressed="false">Spectrum-X Ethernet</button>
+      </div>
+    </div>
+  </Widget>
+
+  <div class="prose">
+    <h2 id="different">Where they still diverge</h2>
+
+    <L at={1}>
+      <p>
+        Both networks refuse to drop packets, because the workload cannot tolerate it. They get
+        there differently.
+      </p>
+      <p>
+        InfiniBand was built this way from the start: a sender is told how much room there is and
+        never exceeds it. Ethernet was built to drop, so losslessness has to be added — by having
+        a congested switch shout "stop" backwards, and by marking traffic so senders slow down
+        before it comes to that. The result is similar; the number of things that have to be
+        configured correctly is not.
+      </p>
+    </L>
+
+    <L min={2}>
+      <p>
+        The difference is proactive versus reactive. Credits are permission granted in advance, so
+        overflow is structurally impossible.<Cite ids="ieee-ib-credits" />
+        <T id="pfc">PFC</T> is a pause sent once buffers are already filling, with
+        <T id="ecn">ECN</T> marking packets end-to-end so senders reduce their rate before it
+        comes to that. Both work. One of them has tuning parameters that a data-centre team has to
+        get right, and a well-known failure mode when they do not.
+      </p>
+      <p>
+        The second difference is who is in charge. InfiniBand has a
+        <T id="subnet-manager">subnet manager</T> with a complete map of the fabric. Spectrum-X
+        gets its equivalent behaviour from the switch and SuperNIC working "in tight coordination"
+        to route adaptively.<Cite ids="nv-spectrumx" /> Centralised knowledge versus coordinated
+        endpoints — a real architectural difference, with real consequences for both what the
+        fabric can offer and what has to be running for it to work.
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        The consequences of that second difference are the ones worth planning around. A central
+        authority that knows the whole topology is what makes deterministic routing, topology-aware
+        collective selection and <a href="/sharp">in-network aggregation trees</a> straightforward
+        to offer. It is also a component whose availability matters, and a recomputation cost that
+        scales with the fabric.
+      </p>
+      <p>
+        Ethernet brings the opposite set. No single authority to depend on, an enormous
+        operational ecosystem, staff who already know it, and multi-tenancy that InfiniBand
+        addresses less naturally — NVIDIA positions Spectrum-X explicitly for "multi-tenant
+        generative AI factories".<Cite ids="nv-spectrumx" /> For a single-tenant training cluster
+        that is not worth much. For a cloud provider selling slices of one, it may be the whole
+        argument.
+      </p>
+    </L>
+
+    <Callout kind="key">
+      <p>
+        Neither is the successor to the other. InfiniBand starts lossless and adds an ecosystem;
+        Ethernet starts with the ecosystem and adds losslessness. The workload decides which
+        starting point costs less to move from — and for a single-tenant training fabric that is
+        usually InfiniBand, while for a multi-tenant one it is usually not.
+      </p>
+    </Callout>
+
+    <Callout kind="caveat">
+      <p>
+        Spectrum-X is credited with <S id="spectrumx-gain" /> network performance and 1.9× NCCL
+        performance across data centres.<Cite ids="nv-spectrumx" /> Both are published without a
+        measured configuration — no topology, no message sizes, no baseline named beyond
+        "standard Ethernet". Compare that with
+        <a href="/inference#numbers">the MLPerf figures</a> elsewhere on this site, which state
+        their GPU counts and workloads. These are quoted here as vendor claims because that is
+        what they are.
+      </p>
+    </Callout>
+
+    <h2 id="numbers">Switch and adapter figures</h2>
+
+    <SpecTable
+      caption="Both sides of the line"
+      ids={['q3400-ports', 'sn6600-ports', 'sn6800-ports', 'xdr-rate', 'cx8', 'cx9', 'spectrumx-gain']}
+    />
+
+    <Deeper title="What this chapter deliberately does not restate">
+      <p>
+        Scale-up versus scale-out is defined once on this site, in
+        <a href="/comparison">chapter 9 of Part I</a>, under a heading that says so. This chapter
+        is not that argument: InfiniBand and Ethernet are both scale-out fabrics, and choosing
+        between them does not move the boundary between the tiers at all. It only changes what the
+        outer tier is made of.
+      </p>
+      <p>
+        Similarly, the reason the outer tier matters — that per-GPU bandwidth falls from
+        <S id="nvlink-egress" /> to <S id="cx8-egress" /> at the rack wall — belongs to
+        <a href="/scale-out">chapter 7</a>. That cliff is the same height whichever fabric you
+        choose, which is worth stating plainly: nothing in this chapter is a way around it.
+      </p>
+    </Deeper>
+  </div>
+
+  <script>
+    interface Row { id: string; concern: string; ib: string; eth: string; note: string }
+
+    const ROWS: Row[] = [
+      {
+        id: 'flow', concern: 'Flow control',
+        ib: 'Credits, per virtual lane', eth: 'PFC pause + ECN marking',
+        note: 'The deepest difference. Credits are permission granted before sending, so buffer overflow cannot occur; PFC is a pause sent once buffers are filling, with ECN reducing sender rates end-to-end so it rarely has to. Both deliver a lossless fabric. One of them has tuning parameters and a well-known failure mode when they are wrong.',
+      },
+      {
+        id: 'routing', concern: 'Routing',
+        ib: 'Subnet manager computes every table', eth: 'Switch and SuperNIC coordinate',
+        note: 'InfiniBand has a central authority holding a complete map of the fabric, which is what makes deterministic routing and topology-aware collectives straightforward. Spectrum-X reaches adaptive routing by having the switch and the adapter work in tight coordination instead — no single map, and no single component to depend on.',
+      },
+      {
+        id: 'collectives', concern: 'Collectives',
+        ib: 'SHARP v4 in the switch', eth: 'In-switch acceleration',
+        note: 'Reducing inside the switch removes traffic rather than scheduling it better, and it needs something that knows the topology in order to build an aggregation tree. That is easier to offer when a subnet manager already holds the map — which is why in-network reduction and centralised routing tend to arrive together.',
+      },
+      {
+        id: 'mgmt', concern: 'Management',
+        ib: 'UFM and the subnet manager', eth: 'Standard Ethernet tooling',
+        note: 'Usually the deciding factor in practice, and rarely the one discussed. InfiniBand needs staff who know InfiniBand and a subnet manager that must be running. Ethernet brings decades of tooling, monitoring and people who already understand it. Neither is a performance argument; both are real costs.',
+      },
+      {
+        id: 'tenancy', concern: 'Multi-tenancy',
+        ib: 'Partitioning, less natural', eth: 'A native strength',
+        note: 'NVIDIA positions Spectrum-X for "multi-tenant generative AI factories", and isolation between tenants is something Ethernet has spent decades on. For a single-tenant training cluster this counts for little. For a cloud provider selling slices of one, it can be the entire argument.',
+      },
+      {
+        id: 'switch', concern: 'Switch',
+        ib: 'Q3400 — 144 × 800 Gb/s', eth: 'SN6600 128 × 800, SN6800 512 × 800',
+        note: 'Comparable radix, and in one case higher: the SN6800 fits 512 ports of 800 G into 5U, the largest port count on either side. Radix is what decides how many tiers a fabric needs, so this is a topology argument rather than a throughput one.',
+      },
+      {
+        id: 'nic', concern: 'Adapter',
+        ib: 'ConnectX-8, 800 Gb/s', eth: 'ConnectX-8, and ConnectX-9 announced',
+        note: 'The same adapter family serves both fabrics, which is the clearest evidence that this is not a software-portability decision. ConnectX-9 at 1,600 Gb/s per GPU is listed on the Spectrum-X platform page and is treated here as announced rather than measured.',
+      },
+    ];
+
+    const root = document.querySelector<HTMLElement>('[data-compare]');
+    if (root) {
+      const fig = root.closest('figure')!;
+      const NS = 'http://www.w3.org/2000/svg';
+      const rows = root.querySelector('[data-rows]')!;
+      const panel = root.querySelector<HTMLElement>('[data-cmp-panel]')!;
+      const IDLE = '<p class="idle">Hover a row, or click one to keep it.</p>';
+      const MUTED = '0.1';
+      let fabric: 'ib' | 'eth' = 'ib';
+      let pinned: string | null = null;
+
+      const el = (n: string, a: Record<string, string | number>) => {
+        const e = document.createElementNS(NS, n);
+        for (const k in a) e.setAttribute(k, String(a[k]));
+        return e;
+      };
+
+      const render = (hover: string | null) => {
+        const sel = hover ?? pinned;
+        rows.textContent = '';
+
+        const head = el('text', { x: 0, y: 12, class: 'lbl-lg',
+          fill: fabric === 'ib' ? 'var(--cyan)' : 'var(--switch)' });
+        head.textContent = fabric === 'ib' ? 'InfiniBand' : 'Spectrum-X Ethernet';
+        rows.appendChild(head);
+
+        ROWS.forEach((r, i) => {
+          const y = 28 + i * 38;
+          const on = !sel || sel === r.id;
+          const g = el('g', { 'data-row': r.id, tabindex: 0, role: 'button', opacity: on ? 1 : MUTED,
+            'aria-label': `${r.concern}: ${fabric === 'ib' ? r.ib : r.eth}` }) as SVGGElement;
+          g.style.cursor = 'pointer';
+
+          g.appendChild(el('rect', { x: 0, y, width: 720, height: 30, rx: 4,
+            fill: sel === r.id ? 'var(--panel-2)' : 'transparent',
+            stroke: sel === r.id ? 'var(--copper)' : 'var(--line)' }));
+
+          const c = el('text', { x: 14, y: y + 19, fill: 'var(--ink-3)' });
+          c.textContent = r.concern;
+          g.appendChild(c);
+
+          const v = el('text', { x: 190, y: y + 19, fill: 'var(--ink)' });
+          v.textContent = fabric === 'ib' ? r.ib : r.eth;
+          g.appendChild(v);
+
+          if (r.id === pinned) {
+            const pin = el('text', { x: 706, y: y + 19, 'text-anchor': 'end', fill: 'var(--copper)' });
+            pin.textContent = 'pinned';
+            g.appendChild(pin);
+          }
+          rows.appendChild(g);
+        });
+
+        const r = sel ? ROWS.find((x) => x.id === sel) : undefined;
+        panel.innerHTML = r
+          ? `<h5>${r.concern}${sel === pinned ? ' <span class="count">pinned — click again to release</span>' : ''}</h5>` +
+            `<p style="color:var(--ink-3)">InfiniBand: ${r.ib} &nbsp;·&nbsp; Spectrum-X: ${r.eth}</p>` +
+            `<p>${r.note}</p>`
+          : IDLE;
+
+        wire();
+      };
+
+      const wire = () => {
+        rows.querySelectorAll<SVGGElement>('[data-row]').forEach((g) => {
+          const id = g.dataset.row!;
+          const toggle = () => { pinned = pinned === id ? null : id; render(pinned ?? id); };
+          g.addEventListener('mouseenter', () => render(id));
+          g.addEventListener('focus', () => render(id));
+          g.addEventListener('click', toggle);
+          g.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            e.preventDefault();
+            toggle();
+          });
+        });
+      };
+
+      root.querySelector('svg')!.addEventListener('mouseleave', () => render(pinned));
+      fig.querySelectorAll<HTMLButtonElement>('[data-fab]').forEach((b) => {
+        b.addEventListener('click', () => {
+          fabric = b.dataset.fab as 'ib' | 'eth';
+          fig.querySelectorAll<HTMLButtonElement>('[data-fab]').forEach((o) =>
+            o.setAttribute('aria-pressed', String(o === b)));
+          render(pinned);
+        });
+      });
+
+      render(null);
+    }
+  </script>
+</Base>

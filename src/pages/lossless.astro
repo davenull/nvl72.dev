@@ -1,0 +1,316 @@
+---
+import Base from '../layouts/Base.astro';
+import T from '../components/T.astro';
+import L from '../components/L.astro';
+import Cite from '../components/Cite.astro';
+import Callout from '../components/Callout.astro';
+import Deeper from '../components/Deeper.astro';
+import Widget from '../components/Widget.astro';
+---
+<Base
+  title="Lossless by Design"
+  description="Ethernet drops under congestion and lets a higher layer recover. A collective finishes when its slowest member finishes, so it cannot afford that — InfiniBand buys credit before it sends."
+  heading="Lossless by Design"
+  slug="/lossless"
+>
+  <div class="prose">
+    <p class="lede">
+      The network that joins these racks makes one promise the internet never made: it will not
+      drop your packet. Everything else in Part II — the routing, the topology, the switch
+      silicon — is downstream of that promise and of what it costs to keep.
+    </p>
+
+    <h2 id="why">Why dropping is unaffordable here</h2>
+
+    <L at={1}>
+      <p>
+        Ordinary networks are allowed to throw packets away. If a switch runs out of room, it
+        discards what it cannot hold, and software at each end eventually notices something is
+        missing and asks again. That works well when the traffic is thousands of unrelated
+        conversations, because only the unlucky conversation waits.
+      </p>
+      <p>
+        The traffic here is not unrelated. When 9,216 GPUs combine their results, the operation is
+        not finished until the <em>last</em> one has contributed. So a single packet thrown away
+        does not delay one conversation — it delays every GPU in the job, all of which sit idle
+        until the missing piece is asked for again and arrives.
+      </p>
+      <p>
+        That is why this network is built so the situation cannot arise. Instead of sending and
+        hoping, a sender is told in advance exactly how much room the receiver has, and is not
+        permitted to exceed it.
+      </p>
+    </L>
+
+    <L min={2}>
+      <p>
+        Ethernet was designed to drop. A switch with a full buffer discards the frame, and TCP
+        infers the loss from missing acknowledgements and retransmits. The recovery is measured in
+        round trips at best and in retransmission timeouts at worst, and the design is sound
+        because it assumes statistically independent flows: the cost is paid by one flow while the
+        rest keep moving.
+      </p>
+      <p>
+        A collective breaks that assumption completely. An all-reduce is a synchronising barrier —
+        its completion time is the completion time of its slowest participant — so loss anywhere
+        stalls everywhere. Worse, the traffic is maximally correlated: every GPU transmits at
+        the same instant on the same layer boundary, which is precisely the pattern that fills
+        buffers.
+      </p>
+      <p>
+        InfiniBand removes the failure mode rather than the recovery path.
+        <T id="credit-flow-control">Credit-based flow control</T> has the receiver advertise how
+        much buffer space it has, and the sender may not exceed it. Congestion therefore becomes a
+        stall at the sender, never a discard in the fabric.<Cite ids="ieee-ib-credits" />
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        Two details of the mechanism are worth having exactly, because they are what make it
+        survivable rather than merely elegant.
+      </p>
+      <p>
+        First, credits are delivered <em>in band</em> — carried in the link's own traffic rather
+        than as a separate signalling channel, which is what the tutorial contrasts against
+        "pause/xon-xoff schemes".<Cite ids="ieee-ib-credits" /> Second, and more importantly, they
+        are <em>absolute</em>: a credit advertisement is a running total of everything permitted
+        since the link initialised, not an increment. That choice is a resiliency decision. An
+        incremental scheme desynchronises permanently if one update is lost; an absolute one
+        self-corrects on the very next advertisement, because the next number supersedes the last.
+        The named primary challenge in this design is not the accounting — it is the loss of a
+        flow-control update itself.
+      </p>
+      <p>
+        Credits are issued per <T id="virtual-lane">virtual lane</T>, so the link is not a single
+        credited channel but several independently buffered ones. A lane whose receive buffers are
+        full ceases transmission while the other lanes continue.<Cite ids="ibta-spec" /> That is
+        the mechanism underneath InfiniBand's quality of service, and it is also the first line of
+        defence against the price discussed below.
+      </p>
+    </L>
+  </div>
+
+  <Widget
+    title="Credit versus drop"
+    hint="Raise the offered load past the line rate"
+    caption="An illustrative model, not a performance predictor. It assumes a retransmission costs roughly twenty times a normal transfer — the order of magnitude of a timeout against a transmission — and that a collective finishes with its slowest member. The point it makes is qualitative and robust to those constants: past saturation the lossy link degrades abruptly and unpredictably, while the credited link degrades linearly and stays predictable."
+  >
+    <div data-credit>
+      <svg class="diagram" viewBox="0 0 720 300" role="img"
+        aria-label="Two links compared under the same offered load: a credit-based link which stalls its sender and delivers everything, and a lossy link which overflows its receive buffer and discards packets. Below, bars comparing the resulting collective completion time.">
+        <g data-scene></g>
+      </svg>
+      <dl class="readout" style="margin-top:0.75rem">
+        <div><dt>Offered load</dt><dd data-out="load">100%</dd></div>
+        <div><dt>Credited: delivered</dt><dd data-out="cr-del">100%</dd></div>
+        <div><dt>Credited: sender stalled</dt><dd data-out="cr-stall">0%</dd></div>
+        <div><dt>Lossy: dropped</dt><dd data-out="lo-drop">0%</dd></div>
+        <div><dt>Collective, credited</dt><dd data-out="cr-time">1.00×</dd></div>
+        <div><dt>Collective, lossy</dt><dd data-out="lo-time">1.00×</dd></div>
+      </dl>
+      <p data-out="verdict" style="margin:0.9rem 0 0;font-size:0.875rem;color:var(--ink-2)"></p>
+    </div>
+    <div slot="controls" class="controls-row">
+      <div class="ctl">
+        <label for="load">Offered load<output data-out="load-lbl">100%</output></label>
+        <input type="range" id="load" data-load min="40" max="140" value="100" step="1" />
+      </div>
+    </div>
+  </Widget>
+
+  <div class="prose">
+    <h2 id="price">What losslessness costs</h2>
+
+    <p>
+      Nothing about this is free. A network that refuses to discard must instead refuse to accept,
+      and that refusal propagates.
+    </p>
+
+    <L min={2}>
+      <p>
+        When a receiver stops returning credits, its upstream sender stops transmitting. If that
+        sender is a switch, its own buffers begin to fill, and it in turn stops returning credits
+        to <em>its</em> upstream. Backpressure walks the fabric in the opposite direction to the
+        traffic that caused it, and it can reach senders that had nothing to do with the congested
+        link. This is <T id="head-of-line">head-of-line blocking</T>: a packet that cannot move
+        holds up packets queued behind it that could have.
+      </p>
+      <p>
+        A lossy network never has this problem, because it resolves congestion by destroying the
+        blocked packet. Losslessness is the decision to hold the packet instead — and to accept
+        that holding it has consequences elsewhere.
+      </p>
+    </L>
+
+    <L min={3}>
+      <p>
+        The practical upshot is that a lossless fabric needs two further mechanisms that a lossy
+        one can do without, and both appear later in this section. Virtual lanes contain
+        backpressure within a traffic class, so a saturated class cannot freeze the others.
+        <a href="/routing#adaptive">Adaptive routing</a> moves flows off the congested path
+        entirely, which is the only way to stop backpressure rather than merely bound it.
+      </p>
+      <p>
+        This is also the reason the equivalent Ethernet story is harder rather than simply
+        different. <T id="roce">RoCE</T> runs the same RDMA semantics over Ethernet and therefore
+        needs the same lossless guarantee, but it has to build it from
+        <T id="pfc">PFC</T> and <T id="ecn">ECN</T> — a reactive pause and an end-to-end congestion
+        signal — rather than getting it from the link layer by construction.
+        <a href="/infiniband-vs-ethernet">Chapter 7</a> is about how close that gets.
+      </p>
+    </L>
+
+    <Callout kind="key">
+      <p>
+        Hold on to the asymmetry: a lossy network converts congestion into <em>latency for the
+        unlucky</em>, and a lossless one converts it into <em>backpressure for everyone</em>. When
+        the workload is thousands of independent flows the first is obviously right. When the
+        workload is one synchronising collective across ten thousand GPUs, the second is the only
+        option that finishes.
+      </p>
+    </Callout>
+
+    <Callout kind="myth">
+      <p>
+        <strong>"Lossless means congestion has been solved."</strong> It means congestion has been
+        relocated. The queue that would have overflowed in the fabric now forms at the sender, and
+        the fabric's job becomes keeping that queue short — which is what routing, topology and
+        congestion control spend their time on. A lossless fabric under sustained overload is
+        still a slow fabric; it is just a predictable one.
+      </p>
+    </Callout>
+
+    <Deeper title="Why the specification reference here is marked unconfirmed">
+      <p>
+        The normative source for all of this is the InfiniBand Architecture Specification, Volume
+        1, section 7.9 — and it is not openly downloadable. Access requires registration with the
+        IBTA, so this site has not read it, and its source entry says so.<Cite ids="ibta-spec" />
+      </p>
+      <p>
+        What has been read is the 2014 tutorial presented to the IEEE 802.1 Data Center Bridging
+        task group, which states the mechanism publicly and cites that section
+        directly.<Cite ids="ieee-ib-credits" /> Everything asserted above traces to it. This is
+        the same standard the rest of the site holds itself to: a citation is only marked verified
+        when the document behind it was actually opened, and
+        <a href="/sources#gaps">the ones that were not are listed</a>.
+      </p>
+    </Deeper>
+  </div>
+
+  <script>
+    const root = document.querySelector<HTMLElement>('[data-credit]');
+    if (root) {
+      const fig = root.closest('figure')!;
+      const NS = 'http://www.w3.org/2000/svg';
+      const scene = root.querySelector('[data-scene]')!;
+      const slider = fig.querySelector<HTMLInputElement>('[data-load]')!;
+      const out = (k: string) => fig.querySelector<HTMLElement>(`[data-out="${k}"]`)!;
+      const el = (n: string, a: Record<string, string | number>) => {
+        const e = document.createElementNS(NS, n);
+        for (const k in a) e.setAttribute(k, String(a[k]));
+        return e;
+      };
+      const text = (x: number, y: number, t: string, extra: Record<string, string | number> = {}) => {
+        const e = el('text', { x, y, ...extra });
+        e.textContent = t;
+        return e;
+      };
+
+      /*
+       * A retransmission costs far more than a transmission — a timeout rather
+       * than a round trip. Twenty is the order of magnitude, not a measurement,
+       * and the widget's caption says so. The conclusion does not depend on the
+       * exact value: any figure above about three produces the same shape.
+       */
+      const RETRANSMIT_COST = 20;
+
+      const render = () => {
+        const load = Number(slider.value);
+        const over = Math.max(0, load - 100);
+
+        // Credited: nothing is ever discarded, so the excess becomes sender
+        // stall and the collective simply takes proportionally longer.
+        const crStall = over / load * 100;
+        const crTime = Math.max(1, load / 100);
+
+        // Lossy: the excess overflows the receive buffer and is discarded. The
+        // collective waits for whoever has to ask again.
+        const loDrop = over / load * 100;
+        const loTime = 1 + (loDrop / 100) * RETRANSMIT_COST;
+
+        out('load').textContent = load + '%';
+        out('load-lbl').textContent = load + '%';
+        out('cr-del').textContent = '100%';
+        out('cr-stall').textContent = crStall.toFixed(0) + '%';
+        out('lo-drop').textContent = loDrop.toFixed(1) + '%';
+        out('cr-time').textContent = crTime.toFixed(2) + '×';
+        out('lo-time').textContent = loTime.toFixed(2) + '×';
+
+        out('verdict').textContent = over === 0
+          ? 'Below the line rate the two links are indistinguishable — which is why a fabric can look fine in testing and fall over in production. The difference only appears once demand exceeds what the link can carry, and a collective makes every GPU demand at once.'
+          : `At ${load}% offered load the credited link stalls its sender ${crStall.toFixed(0)}% of the time and still delivers everything, finishing in ${crTime.toFixed(2)}× the ideal. The lossy link discards ${loDrop.toFixed(1)}% and finishes in ${loTime.toFixed(2)}×, because the collective waits for whoever has to ask again.`;
+
+        // ── Draw ──────────────────────────────────────────────────────
+        scene.textContent = '';
+        const lanes = [
+          { y: 30, label: 'Credit-based', accent: 'var(--cyan)', stalled: crStall, dropped: 0 },
+          { y: 130, label: 'Drop on overflow', accent: 'var(--danger)', stalled: 0, dropped: loDrop },
+        ];
+
+        for (const lane of lanes) {
+          scene.appendChild(text(0, lane.y - 8, lane.label, { fill: lane.accent }));
+          // sender
+          scene.appendChild(el('rect', { x: 0, y: lane.y, width: 78, height: 34, rx: 4,
+            fill: 'none', stroke: 'var(--line-strong)' }));
+          scene.appendChild(text(39, lane.y + 21, 'sender', { 'text-anchor': 'middle' }));
+          // link
+          scene.appendChild(el('line', { x1: 78, y1: lane.y + 17, x2: 560, y2: lane.y + 17,
+            stroke: 'var(--line-strong)', 'stroke-width': 1 }));
+          // packets in flight, thinned by whatever the lane loses or stalls
+          const inFlight = Math.round(14 * (1 - (lane.stalled + lane.dropped) / 100));
+          for (let i = 0; i < inFlight; i++) {
+            scene.appendChild(el('rect', { x: 92 + i * 32, y: lane.y + 11, width: 20, height: 12,
+              rx: 2, fill: lane.accent, opacity: 0.75 }));
+          }
+          // receive buffer
+          scene.appendChild(el('rect', { x: 560, y: lane.y - 4, width: 96, height: 42, rx: 4,
+            fill: 'var(--panel-2)', stroke: 'var(--line-strong)' }));
+          scene.appendChild(text(608, lane.y + 21, 'buffer', { 'text-anchor': 'middle' }));
+
+          if (lane.stalled > 0) {
+            scene.appendChild(text(39, lane.y + 50, `stalled ${lane.stalled.toFixed(0)}%`,
+              { 'text-anchor': 'middle', fill: lane.accent }));
+          }
+          if (lane.dropped > 0) {
+            // Discarded packets, drawn falling out of the full buffer.
+            const n = Math.max(1, Math.round(lane.dropped / 4));
+            for (let i = 0; i < n; i++) {
+              scene.appendChild(el('rect', { x: 566 + i * 10, y: lane.y + 46, width: 7, height: 7,
+                rx: 1, fill: 'var(--danger)', opacity: 0.8 }));
+            }
+            scene.appendChild(text(716, lane.y + 56, `${lane.dropped.toFixed(1)}% dropped`,
+              { fill: 'var(--danger)', 'text-anchor': 'end' }));
+          }
+        }
+
+        // ── Completion bars ───────────────────────────────────────────
+        const worst = Math.max(crTime, loTime, 1.2);
+        scene.appendChild(text(0, 236, 'Collective completion, multiples of ideal'));
+        const bars = [
+          { y: 246, t: crTime, fill: 'var(--cyan)', name: 'credited' },
+          { y: 272, t: loTime, fill: 'var(--danger)', name: 'lossy' },
+        ];
+        for (const b of bars) {
+          scene.appendChild(el('rect', { x: 76, y: b.y, width: Math.max(2, (b.t / worst) * 520),
+            height: 16, rx: 3, fill: b.fill, opacity: 0.85 }));
+          scene.appendChild(text(70, b.y + 12, b.name, { 'text-anchor': 'end' }));
+          scene.appendChild(text(82 + (b.t / worst) * 520, b.y + 12, b.t.toFixed(2) + '×'));
+        }
+      };
+
+      slider.addEventListener('input', render);
+      render();
+    }
+  </script>
+</Base>

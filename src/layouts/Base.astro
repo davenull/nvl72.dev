@@ -75,13 +75,16 @@ const full = `${title} · NVL72`;
       <div class="wrap">
         <a class="brand" href="/">NVL<b>72</b>.dev</a>
 
-        <!--
+        {/*
           Two real links, not a tablist: activating one loads a different
           document, so the tab contract would be a lie. aria-current is "true"
           rather than "page" because the active pill points at its part's first
           chapter, which is usually not the page you are on — and "page" would
           put two aria-current="page" in one header.
-        -->
+
+          Braces rather than an HTML comment so it is compiled away instead of
+          shipping in all twenty pages.
+        */}
         <nav class="part-switch" aria-label="Parts">
           {parts.map((p) => (
             <a href={p.chapters[0].slug}

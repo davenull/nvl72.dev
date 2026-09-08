@@ -112,6 +112,14 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 
 body {
   margin: 0;
+  /*
+   * The hover cards on <S> and <T> are absolutely positioned and hidden until
+   * hover, but a hidden absolutely-positioned box still counts toward
+   * scrollWidth — so a term near the right edge gave the whole page a
+   * horizontal scrollbar at narrow widths. `clip` rather than `hidden`: hidden
+   * would establish a scroll container and break the sticky masthead.
+   */
+  overflow-x: clip;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--sans);
@@ -731,6 +739,8 @@ code { font-family: var(--mono); font-size: 0.875em; background: var(--bg-sunk);
    under the sticky header. */
 @media (max-width: 900px) {
   html { scroll-padding-top: 7.5rem; }
+  .controls { margin-left: auto; }
+  .stepper { order: 3; flex-basis: 100%; min-width: 0; justify-content: center; }
 }
 
 @media (max-width: 720px) {
@@ -743,8 +753,6 @@ code { font-family: var(--mono); font-size: 0.875em; background: var(--bg-sunk);
   .masthead .wrap { gap: 0.5rem 0.75rem; }
   /* Two rows, not three: the brand and the controls share the first, and the
      stepper — which needs the full width — is pushed onto its own. */
-  .controls { margin-left: auto; }
-  .stepper { order: 3; flex-basis: 100%; min-width: 0; justify-content: center; }
   /* Ten dots and two arrows have to fit 375px without clipping, so the
      connectors and the targets both come in a little. */
   .stepper li + li::before { width: 6px; }

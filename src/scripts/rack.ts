@@ -262,7 +262,7 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
     return m;
   }
 
-  function computeTray(i: number) {
+  function computeTray() {
     const g = new THREE.Group();
     const chassis = new THREE.Mesh(box(TRAY_W, U * 0.86, TRAY_D), mat.tray);
     g.add(chassis);
@@ -310,7 +310,7 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
 
   for (const s of slots) {
     if (s.kind === 'compute') {
-      const g = computeTray(s.i!);
+      const g = computeTray();
       g.position.set(0, s.y, 0.01);
       root.add(g);
       register('compute', g, accordion(s.y, 0.55), 0.34, s.i);
