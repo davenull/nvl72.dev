@@ -10,7 +10,7 @@ import SpecTable from '../components/SpecTable.astro';
 ---
 <Base
   title="Switches & Optics"
-  description="Quantum-X800, Q3400 and the transceivers hanging off them — and the reach budget that decides where a rack is physically allowed to stand."
+  description="Quantum-X800, Q3400 and the transceivers hanging off them - and the reach budget that decides where a rack is physically allowed to stand."
   heading="Switches, Optics and Cabling"
   slug="/switches-optics"
 >
@@ -18,7 +18,7 @@ import SpecTable from '../components/SpecTable.astro';
     <p class="lede">
       <a href="/anatomy#spine">Chapter 2 of Part I</a> described a copper spine chosen over optics
       because transceivers would have cost <S id="optical-penalty" />. That argument does not stop
-      at the rack wall — it reappears here, one tier out, with the distances multiplied by a
+      at the rack wall - it reappears here, one tier out, with the distances multiplied by a
       hundred and the answer reversed.
     </p>
 
@@ -33,7 +33,7 @@ import SpecTable from '../components/SpecTable.astro';
       <p>
         This matters more than a spec-sheet detail, because the two are often talked about as if
         they were the same thing. The racks in a shipping SuperPOD today are usually joined by the
-        older, cheaper generation — not the newest one in the press release.
+        older, cheaper generation - not the newest one in the press release.
       </p>
     </L>
 
@@ -57,7 +57,7 @@ import SpecTable from '../components/SpecTable.astro';
       <p>
         The radix is where the generations diverge in a way that changes topology rather than
         throughput. A <S id="q3400-ports" bare /> Gb/s Q3400 presents 144 ports over 72 OSFP
-        cages — two ports per cage — which is roughly 115 Tb/s of switching in one
+        cages - two ports per cage - which is roughly 115 Tb/s of switching in one
         box.<Cite ids={['nv-xdr-switches', 'nv-quantum-x800']} /> There is also a
         <S id="q3200-ports" bare /> Gb/s Q3200 in a 2U air-cooled chassis, which NVIDIA positions
         for large or mixed-generation environments.
@@ -79,7 +79,7 @@ import SpecTable from '../components/SpecTable.astro';
   <Widget
     title="Link budget"
     hint="Drag the distance · pick a medium"
-    caption="Reach figures are NVIDIA's for 1.6 Tb/s OSFP cabling: active copper is specified at 1.1–3 m, and the twin-port 2×DR4 transceiver at up to 500 m over 1310 nm single-mode fibre. Power and cost are indicative orders of magnitude for the class of cable, not quoted per-part figures — they are here to show the shape of the trade, not to price a build."
+    caption="Reach figures are NVIDIA's for 1.6 Tb/s OSFP cabling: active copper is specified at 1.1–3 m, and the twin-port 2×DR4 transceiver at up to 500 m over 1310 nm single-mode fibre. Power and cost are indicative orders of magnitude for the class of cable, not quoted per-part figures - they are here to show the shape of the trade, not to price a build."
   >
     <div data-budget>
       <svg class="diagram" viewBox="0 0 720 220" role="img"
@@ -115,7 +115,7 @@ import SpecTable from '../components/SpecTable.astro';
         Copper at these rates reaches a few metres. NVIDIA specifies its 1.6 Tb/s active copper
         cable at <S id="xdr-copper-reach" />, which is enough to cross a rack or reach the one
         beside it and nothing further.<Cite ids="nv-xdr-switches" /> Optics reach
-        <S id="xdr-optics-reach" /> over single-mode fibre — two orders of magnitude more, at a
+        <S id="xdr-optics-reach" /> over single-mode fibre - two orders of magnitude more, at a
         cost and a power draw per link that copper does not have.
       </p>
       <p>
@@ -137,7 +137,7 @@ import SpecTable from '../components/SpecTable.astro';
         The consequence is a hierarchy that shows up in every real floor plan. Rail links from a
         compute tray to its leaf switch are kept inside the copper envelope wherever the layout
         allows; leaf-to-spine hops go optical because they must cross rows. Which is also why
-        <a href="/topology#rails">rail alignment</a> is worth so much — it converts the traffic
+        <a href="/topology#rails">rail alignment</a> is worth so much - it converts the traffic
         that dominates a collective into the hop that is cheapest to build.
       </p>
     </L>
@@ -165,7 +165,7 @@ import SpecTable from '../components/SpecTable.astro';
         above.<Cite ids={['nv-ib-switching', 'nv-xdr-switches']} />
       </p>
       <p>
-        The older rungs — SDR through EDR — are widely published but the IBTA's own roadmap
+        The older rungs - SDR through EDR - are widely published but the IBTA's own roadmap
         presents them only as an image, so this site does not state them as sourced figures. That
         is a smaller point than it sounds: nothing in this section depends on the historical
         ladder, only on the two generations actually deployed. It is noted on
@@ -181,18 +181,18 @@ import SpecTable from '../components/SpecTable.astro';
 
     /*
      * Reach is NVIDIA's published figure for 1.6 Tb/s OSFP cabling. Power and
-     * cost are indicative for the class — the widget caption says so — and are
+     * cost are indicative for the class - the widget caption says so - and are
      * here to show the shape of the trade rather than to price a build.
      */
     const MEDIA: Medium[] = [
       { id: 'passive', name: 'Passive copper', maxM: 1.5, watts: '~0 W', cost: '0.5×',
-        blurb: 'No electronics at all — just wire. Free to run and impossible to stretch. In practice this is an intra-rack cable and nothing else.' },
+        blurb: 'No electronics at all - just wire. Free to run and impossible to stretch. In practice this is an intra-rack cable and nothing else.' },
       { id: 'active', name: 'Active copper', maxM: 3, watts: '~2 W', cost: '1×',
         blurb: 'Copper with signal conditioning at the ends, specified by NVIDIA at 1.1 to 3 m. This is the workhorse for a tray reaching its own rack’s leaf switch, and the last option before optics.' },
       { id: 'mmf', name: 'Multimode optics', maxM: 50, watts: '~10 W', cost: '4×',
-        blurb: 'Short-reach light. Cheaper transceivers than single-mode and enough reach to cross a row, which makes it the usual choice for leaf-to-spine inside a hall.' },
+        blurb: 'Short-reach light. Cheaper transceivers than single-mode and enough reach to cross a row, which is why leaf-to-spine hops inside a hall reach for it before single-mode.' },
       { id: 'smf', name: 'Single-mode optics', maxM: 500, watts: '~15 W', cost: '8×',
-        blurb: 'NVIDIA’s twin-port 2×DR4 transceiver over 1310 nm fibre reaches 500 m — enough to span a building. The reach that makes large fabrics buildable, and the line item that makes them expensive.' },
+        blurb: 'NVIDIA’s twin-port 2×DR4 transceiver over 1310 nm fibre reaches 500 m - enough to span a building. The reach that makes large fabrics buildable, and the line item that makes them expensive.' },
     ];
 
     const root = document.querySelector<HTMLElement>('[data-budget]');
@@ -209,7 +209,7 @@ import SpecTable from '../components/SpecTable.astro';
       };
       let medium = 'active';
 
-      // 0.5 m to 500 m, logarithmic — the interesting decisions are all in the
+      // 0.5 m to 500 m, logarithmic - the interesting decisions are all in the
       // first few metres, which a linear scale would compress to nothing.
       const D_MIN = 0.5, D_MAX = 500;
       const dist = () => D_MIN * Math.pow(D_MAX / D_MIN, Number(slider.value) / 100);
@@ -236,7 +236,7 @@ import SpecTable from '../components/SpecTable.astro';
         out('verdict').textContent = closes
           ? `${med.name} closes a ${fmt(d)} link. ${med.blurb}`
           : cheapest
-            ? `${med.name} stops at ${fmt(med.maxM)}, so a ${fmt(d)} link needs ${cheapest.name.toLowerCase()} — ${cheapest.watts} and ${cheapest.cost} the cost, per link, multiplied by every port in the fabric.`
+            ? `${med.name} stops at ${fmt(med.maxM)}, so a ${fmt(d)} link needs ${cheapest.name.toLowerCase()} - ${cheapest.watts} and ${cheapest.cost} the cost, per link, multiplied by every port in the fabric.`
             : `Nothing in this list reaches ${fmt(d)}. Past 500 m the question stops being which cable and starts being whether these racks belong in the same fabric at all.`;
 
         // ── Draw the reach scale ──────────────────────────────────────
@@ -257,7 +257,7 @@ import SpecTable from '../components/SpecTable.astro';
           scale.appendChild(bar);
           const label = el('text', { x: x(m.maxM) + 8, y: y + 13,
             fill: on ? 'var(--copper)' : 'var(--ink-3)' });
-          label.textContent = `${m.name} — ${fmt(m.maxM)}`;
+          label.textContent = `${m.name} - ${fmt(m.maxM)}`;
           scale.appendChild(label);
         });
 

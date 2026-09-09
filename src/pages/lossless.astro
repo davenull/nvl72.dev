@@ -9,15 +9,15 @@ import Widget from '../components/Widget.astro';
 ---
 <Base
   title="Lossless by Design"
-  description="Ethernet drops under congestion and lets a higher layer recover. A collective finishes when its slowest member finishes, so it cannot afford that — InfiniBand buys credit before it sends."
+  description="Ethernet drops under congestion and lets a higher layer recover. A collective finishes when its slowest member finishes, so it cannot afford that - InfiniBand buys credit before it sends."
   heading="Lossless by Design"
   slug="/lossless"
 >
   <div class="prose">
     <p class="lede">
       The network that joins these racks makes one promise the internet never made: it will not
-      drop your packet. Everything else in Part II — the routing, the topology, the switch
-      silicon — is downstream of that promise and of what it costs to keep.
+      drop your packet. Everything else in Part II - the routing, the topology, the switch
+      silicon - is downstream of that promise and of what it costs to keep.
     </p>
 
     <h2 id="why">Why dropping is unaffordable here</h2>
@@ -32,7 +32,7 @@ import Widget from '../components/Widget.astro';
       <p>
         The traffic here is not unrelated. When 9,216 GPUs combine their results, the operation is
         not finished until the <em>last</em> one has contributed. So a single packet thrown away
-        does not delay one conversation — it delays every GPU in the job, all of which sit idle
+        does not delay one conversation - it delays every GPU in the job, all of which sit idle
         until the missing piece is asked for again and arrives.
       </p>
       <p>
@@ -51,8 +51,8 @@ import Widget from '../components/Widget.astro';
         rest keep moving.
       </p>
       <p>
-        A collective breaks that assumption completely. An all-reduce is a synchronising barrier —
-        its completion time is the completion time of its slowest participant — so loss anywhere
+        A collective breaks that assumption completely. An all-reduce is a synchronising barrier -
+        its completion time is the completion time of its slowest participant - so loss anywhere
         stalls everywhere. Worse, the traffic is maximally correlated: every GPU transmits at
         the same instant on the same layer boundary, which is precisely the pattern that fills
         buffers.
@@ -71,14 +71,14 @@ import Widget from '../components/Widget.astro';
         survivable rather than merely elegant.
       </p>
       <p>
-        First, credits are delivered <em>in band</em> — carried in the link's own traffic rather
+        First, credits are delivered <em>in band</em> - carried in the link's own traffic rather
         than as a separate signalling channel, which is what the tutorial contrasts against
         "pause/xon-xoff schemes".<Cite ids="ieee-ib-credits" /> Second, and more importantly, they
         are <em>absolute</em>: a credit advertisement is a running total of everything permitted
         since the link initialised, not an increment. That choice is a resiliency decision. An
         incremental scheme desynchronises permanently if one update is lost; an absolute one
         self-corrects on the very next advertisement, because the next number supersedes the last.
-        The named primary challenge in this design is not the accounting — it is the loss of a
+        The named primary challenge in this design is not the accounting - it is the loss of a
         flow-control update itself.
       </p>
       <p>
@@ -94,7 +94,7 @@ import Widget from '../components/Widget.astro';
   <Widget
     title="Credit versus drop"
     hint="Raise the offered load past the line rate"
-    caption="An illustrative model, not a performance predictor. It assumes a retransmission costs roughly twenty times a normal transfer — the order of magnitude of a timeout against a transmission — and that a collective finishes with its slowest member. The point it makes is qualitative and robust to those constants: past saturation the lossy link degrades abruptly and unpredictably, while the credited link degrades linearly and stays predictable."
+    caption="An illustrative model, not a performance predictor. It assumes a retransmission costs roughly twenty times a normal transfer - the order of magnitude of a timeout against a transmission - and that a collective finishes with its slowest member. The point it makes is qualitative and robust to those constants: past saturation the lossy link degrades abruptly and unpredictably, while the credited link degrades linearly and stays predictable."
   >
     <div data-credit>
       <svg class="diagram" viewBox="0 0 720 300" role="img"
@@ -138,7 +138,7 @@ import Widget from '../components/Widget.astro';
       </p>
       <p>
         A lossy network never has this problem, because it resolves congestion by destroying the
-        blocked packet. Losslessness is the decision to hold the packet instead — and to accept
+        blocked packet. Losslessness is the decision to hold the packet instead - and to accept
         that holding it has consequences elsewhere.
       </p>
     </L>
@@ -155,8 +155,8 @@ import Widget from '../components/Widget.astro';
         This is also the reason the equivalent Ethernet story is harder rather than simply
         different. <T id="roce">RoCE</T> runs the same RDMA semantics over Ethernet and therefore
         needs the same lossless guarantee, but it has to build it from
-        <T id="pfc">PFC</T> and <T id="ecn">ECN</T> — a reactive pause and an end-to-end congestion
-        signal — rather than getting it from the link layer by construction.
+        <T id="pfc">PFC</T> and <T id="ecn">ECN</T> - a reactive pause and an end-to-end congestion
+        signal - rather than getting it from the link layer by construction.
         <a href="/infiniband-vs-ethernet">Chapter 7</a> is about how close that gets.
       </p>
     </L>
@@ -175,7 +175,7 @@ import Widget from '../components/Widget.astro';
       <p>
         <strong>"Lossless means congestion has been solved."</strong> It means congestion has been
         relocated. The queue that would have overflowed in the fabric now forms at the sender, and
-        the fabric's job becomes keeping that queue short — which is what routing, topology and
+        the fabric's job becomes keeping that queue short - which is what routing, topology and
         congestion control spend their time on. A lossless fabric under sustained overload is
         still a slow fabric; it is just a predictable one.
       </p>
@@ -184,7 +184,7 @@ import Widget from '../components/Widget.astro';
     <Deeper title="Why the specification reference here is marked unconfirmed">
       <p>
         The normative source for all of this is the InfiniBand Architecture Specification, Volume
-        1, section 7.9 — and it is not openly downloadable. Access requires registration with the
+        1, section 7.9 - and it is not openly downloadable. Access requires registration with the
         IBTA, so this site has not read it, and its source entry says so.<Cite ids="ibta-spec" />
       </p>
       <p>
@@ -218,7 +218,7 @@ import Widget from '../components/Widget.astro';
       };
 
       /*
-       * A retransmission costs far more than a transmission — a timeout rather
+       * A retransmission costs far more than a transmission - a timeout rather
        * than a round trip. Twenty is the order of magnitude, not a measurement,
        * and the widget's caption says so. The conclusion does not depend on the
        * exact value: any figure above about three produces the same shape.
@@ -248,7 +248,7 @@ import Widget from '../components/Widget.astro';
         out('lo-time').textContent = loTime.toFixed(2) + '×';
 
         out('verdict').textContent = over === 0
-          ? 'Below the line rate the two links are indistinguishable — which is why a fabric can look fine in testing and fall over in production. The difference only appears once demand exceeds what the link can carry, and a collective makes every GPU demand at once.'
+          ? 'Below the line rate the two links are indistinguishable - which is why a fabric can look fine in testing and fall over in production. The difference only appears once demand exceeds what the link can carry, and a collective makes every GPU demand at once.'
           : `At ${load}% offered load the credited link stalls its sender ${crStall.toFixed(0)}% of the time and still delivers everything, finishing in ${crTime.toFixed(2)}× the ideal. The lossy link discards ${loDrop.toFixed(1)}% and finishes in ${loTime.toFixed(2)}×, because the collective waits for whoever has to ask again.`;
 
         // ── Draw ──────────────────────────────────────────────────────

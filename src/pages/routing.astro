@@ -9,7 +9,7 @@ import Widget from '../components/Widget.astro';
 ---
 <Base
   title="Addressing & Routing"
-  description="One subnet manager discovers every device, assigns every address and computes every forwarding table — and then adaptive routing overrules it, per packet, when a link congests."
+  description="One subnet manager discovers every device, assigns every address and computes every forwarding table - and then adaptive routing overrules it, per packet, when a link congests."
   heading="Addressing and Routing"
   slug="/routing"
 >
@@ -31,13 +31,13 @@ import Widget from '../components/Widget.astro';
       </p>
       <p>
         Then it hands out addresses and tells every switch exactly where to send traffic for every
-        possible destination. A switch here does not work anything out for itself — it is given a
+        possible destination. A switch here does not work anything out for itself - it is given a
         table and follows it.
       </p>
       <p>
         The advantage is that somebody knows the whole shape of the network and can pick sensible
         routes through it. The cost is that this somebody now matters a great deal: while it is
-        gone, traffic already flowing carries on, but nothing new can be worked out — a swapped
+        gone, traffic already flowing carries on, but nothing new can be worked out - a swapped
         cable or a replaced switch has nobody to tell the fabric about it.
       </p>
     </L>
@@ -47,8 +47,8 @@ import Widget from '../components/Widget.astro';
         The <T id="subnet-manager">subnet manager</T> is "a centralized entity running on the
         server that discovers and configures all the InfiniBand fabric devices to enable traffic
         flow throughout the fabric".<Cite ids="nv-ufm" /> It assigns each port a
-        <T id="lid">LID</T> — a subnet-local address, allocated rather than burned in, distinct
-        from the permanent GUID — and computes a forwarding table for every switch, indexed by
+        <T id="lid">LID</T> - a subnet-local address, allocated rather than burned in, distinct
+        from the permanent GUID - and computes a forwarding table for every switch, indexed by
         destination LID.
       </p>
       <p>
@@ -69,7 +69,7 @@ import Widget from '../components/Widget.astro';
       </p>
       <p>
         What it buys is worth the constraint. Because the manager knows the whole graph, it can
-        compute routes that are deterministic and balanced by construction — and it can hand a
+        compute routes that are deterministic and balanced by construction - and it can hand a
         topology-aware collectives library the actual topology rather than a guess. That is the
         precondition for both <a href="/topology#rails">rail alignment</a> and
         <a href="/sharp">in-network reduction</a>: neither works if nobody knows where anything is.
@@ -80,7 +80,7 @@ import Widget from '../components/Widget.astro';
   <Widget
     title="Forwarding table explorer"
     hint="Hover a destination · click to keep it · then congest the link"
-    caption="A four-leaf, two-spine fat tree with sixteen endpoints — the smallest arrangement that has a real routing choice in it. The static route picks a spine deterministically from the destination address, which is what makes it reproducible and also what makes it collide. Schematic: real forwarding tables are computed over the whole fabric, not from one field."
+    caption="A four-leaf, two-spine fat tree with sixteen endpoints - the smallest arrangement that has a real routing choice in it. The static route picks a spine deterministically from the destination address, which is what makes it reproducible and also what makes it collide. Schematic: real forwarding tables are computed over the whole fabric, not from one field."
   >
     <div data-routing>
       <svg class="diagram" viewBox="0 0 720 300" role="img"
@@ -89,9 +89,9 @@ import Widget from '../components/Widget.astro';
       </svg>
       <dl class="readout" style="margin-top:0.75rem">
         <div><dt>Source</dt><dd>endpoint 00</dd></div>
-        <div><dt>Destination</dt><dd data-out="dst">—</dd></div>
-        <div><dt>Path</dt><dd data-out="path">—</dd></div>
-        <div><dt>Hops</dt><dd data-out="hops">—</dd></div>
+        <div><dt>Destination</dt><dd data-out="dst">-</dd></div>
+        <div><dt>Path</dt><dd data-out="path">-</dd></div>
+        <div><dt>Hops</dt><dd data-out="hops">-</dd></div>
         <div><dt>Adaptive routing</dt><dd data-out="ar">not engaged</dd></div>
       </dl>
       <p data-out="verdict" style="margin:0.9rem 0 0;font-size:0.875rem;color:var(--ink-2)"></p>
@@ -111,7 +111,7 @@ import Widget from '../components/Widget.astro';
     <L at={1}>
       <p>
         A fixed table has one weakness. If it always sends the same kind of traffic the same way,
-        then when a lot of that traffic appears at once it all queues behind itself — while an
+        then when a lot of that traffic appears at once it all queues behind itself - while an
         equally good parallel route sits empty.
       </p>
       <p>
@@ -129,7 +129,7 @@ import Widget from '../components/Widget.astro';
       </p>
       <p>
         The cost is reordering. Packets of one flow now take different paths and can arrive out of
-        order, which the transport has to tolerate — one of several places where RDMA's tight
+        order, which the transport has to tolerate - one of several places where RDMA's tight
         coupling to the fabric shows. On NVIDIA fabrics adaptive routing is part of the core
         subnet manager implementation rather than an add-on: since UFM v6.4 it no longer needs a
         separate plugin, and neither does <T id="shield">SHIELD</T>.<Cite ids="nv-ufm" />
@@ -138,7 +138,7 @@ import Widget from '../components/Widget.astro';
 
     <L min={3}>
       <p>
-        Adaptive routing is not a nicety on a lossless fabric — it is load-bearing. On a dropping
+        Adaptive routing is not a nicety on a lossless fabric - it is load-bearing. On a dropping
         network a congested link degrades locally: the queue fills, packets are discarded, senders
         back off. On a lossless one the queue fills and <em>backpressure propagates</em>, so a
         single hotspot can stall senders that were never using the congested link at all. Moving
@@ -168,7 +168,7 @@ import Widget from '../components/Widget.astro';
       <p>
         <strong>"Adaptive routing makes topology irrelevant."</strong> It only ever chooses among
         paths that already exist. If a topology is oversubscribed at the upper tier, every
-        alternative it can pick is oversubscribed too — it will spread the pain evenly and
+        alternative it can pick is oversubscribed too - it will spread the pain evenly and
         that is all. What the topology provides is the set of options;
         <a href="/topology">the next chapter</a> is about making that set large enough to matter.
       </p>
@@ -177,14 +177,14 @@ import Widget from '../components/Widget.astro';
     <Deeper title="Why LIDs are assigned rather than burned in">
       <p>
         Every port has a permanent GUID, the way an Ethernet interface has a MAC address. But
-        switches do not forward on GUIDs — they forward on LIDs, which the subnet manager hands
+        switches do not forward on GUIDs - they forward on LIDs, which the subnet manager hands
         out at discovery time and which are meaningful only inside that subnet.
       </p>
       <p>
         The reason is table size. A forwarding table indexed by an assigned, densely packed
         address space is a compact array; one indexed by 64-bit globally unique identifiers is a
         hash lookup over a sparse space. Assigning addresses is something you can only do if
-        somebody is in charge of the whole subnet — so the centralised manager and the compact
+        somebody is in charge of the whole subnet - so the centralised manager and the compact
         forwarding table are the same design decision, seen twice.
       </p>
     </Deeper>
@@ -304,9 +304,9 @@ import Widget from '../components/Widget.astro';
 
         // ── Readouts ──────────────────────────────────────────────────
         if (dst === null || r === null) {
-          out('dst').textContent = '—';
-          out('path').textContent = '—';
-          out('hops').textContent = '—';
+          out('dst').textContent = '-';
+          out('path').textContent = '-';
+          out('hops').textContent = '-';
           out('ar').textContent = 'not engaged';
           out('verdict').textContent = 'Pick a destination. Endpoints 01 to 03 share a leaf switch with the source; everything from 04 upward has to climb to a spine and back down, which is where the routing decision lives.';
           return;
@@ -317,14 +317,14 @@ import Widget from '../components/Widget.astro';
           ? `00 → leaf ${sl} → ${name}`
           : `00 → leaf ${sl} → spine ${r.spine} → leaf ${dl} → ${name}`;
         out('hops').textContent = String(r.hops);
-        out('ar').textContent = r.ar ? 'engaged — rerouted' : 'not engaged';
+        out('ar').textContent = r.ar ? 'engaged - rerouted' : 'not engaged';
         out('ar').style.color = r.ar ? 'var(--copper)' : '';
 
         out('verdict').textContent = r.spine === null
-          ? `Same leaf switch, so the traffic never climbs the tree: two hops, no spine involved, and no routing choice to make. This is the case rail alignment is designed to manufacture — see the topology chapter.`
+          ? `Same leaf switch, so the traffic never climbs the tree: two hops, no spine involved, and no routing choice to make. This is the case rail alignment is designed to manufacture - see the topology chapter.`
           : r.ar
-            ? `The forwarding table sends destination ${name} via spine ${staticSpine(dst)}, but that uplink is congested, so adaptive routing has taken spine ${r.spine} instead. Same destination, same table, different port — chosen on occupancy at the moment the packet arrived.`
-            : `The table sends destination ${name} via spine ${staticSpine(dst)}, deterministically, because the choice is a function of the destination address. Reproducible — and the reason several flows can pile onto one uplink while its neighbour sits idle.`;
+            ? `The forwarding table sends destination ${name} via spine ${staticSpine(dst)}, but that uplink is congested, so adaptive routing has taken spine ${r.spine} instead. Same destination, same table, different port - chosen on occupancy at the moment the packet arrived.`
+            : `The table sends destination ${name} via spine ${staticSpine(dst)}, deterministically, because the choice is a function of the destination address. Reproducible - and the reason several flows can pile onto one uplink while its neighbour sits idle.`;
       };
 
       const wire = () => {

@@ -18,7 +18,7 @@ import SpecTable from '../components/SpecTable.astro';
   <div class="prose">
     <p class="lede">
       NVIDIA sells both, and a SuperPOD can be built either way. The interesting thing is how far
-      the Ethernet option has had to move toward InfiniBand to be viable here — and that what
+      the Ethernet option has had to move toward InfiniBand to be viable here - and that what
       remains different is mostly about who is in charge of the fabric rather than how fast it is.
     </p>
 
@@ -39,7 +39,7 @@ import SpecTable from '../components/SpecTable.astro';
         Line rates match too: <S id="xdr-rate" /> per port on Quantum-X800, and 800 G ports on
         Spectrum switches, with the same ConnectX-8 SuperNIC available on both
         sides.<Cite ids={['nv-quantum-x800', 'nv-spectrumx']} /> Radix is comparable and in one
-        case better — a <S id="sn6800-ports" bare /> Gb/s SN6800 has the highest port count on
+        case better - a <S id="sn6800-ports" bare /> Gb/s SN6800 has the highest port count on
         either side of the line.
       </p>
     </L>
@@ -49,7 +49,7 @@ import SpecTable from '../components/SpecTable.astro';
         That the programming model is shared is the fact that reframes the whole comparison. If
         RDMA, GPUDirect and NCCL behave the same on both, then this is not a decision about
         software portability and never was. It is a decision about the properties of the wire
-        underneath identical software — and about operations.
+        underneath identical software - and about operations.
       </p>
     </L>
   </div>
@@ -57,7 +57,7 @@ import SpecTable from '../components/SpecTable.astro';
   <Widget
     title="Stack comparison"
     hint="Switch the fabric · hover a row, click to keep it"
-    caption="Both columns are NVIDIA products, so this compares two deliberate designs rather than a vendor against a strawman. The Spectrum-X performance figures are vendor claims published without a measured configuration — unlike the MLPerf numbers elsewhere on this site, which name their setup — and are marked as claims."
+    caption="Both columns are NVIDIA products, so this compares two deliberate designs rather than a vendor against a strawman. The Spectrum-X performance figures are vendor claims published without a measured configuration - unlike the MLPerf numbers elsewhere on this site, which name their setup - and are marked as claims."
   >
     <div data-compare>
       <svg class="diagram" viewBox="0 0 720 300" role="img"
@@ -86,13 +86,13 @@ import SpecTable from '../components/SpecTable.astro';
       </p>
       <p>
         InfiniBand was built this way from the start: a sender is told how much room there is and
-        never exceeds it. Ethernet was built to drop, so losslessness has to be added — by having
+        never exceeds it. Ethernet was built to drop, so losslessness has to be added - by having
         a congested switch shout "stop" backwards, and by marking traffic so senders slow down
         before it comes to that.
       </p>
       <p>
         Both end up refusing to drop packets. The difference is that the Ethernet version is
-        bolted on, with settings that have to be right — and when they are not, the shouting
+        bolted on, with settings that have to be right - and when they are not, the shouting
         spreads. A switch told to stop tells the switches behind it to stop, and traffic that had
         nothing to do with the original congestion stalls too.
       </p>
@@ -110,7 +110,7 @@ import SpecTable from '../components/SpecTable.astro';
       <p>
         Those failures are worth naming rather than gesturing at, because they are the reason
         lossless Ethernet has a reputation. A PFC pause travels backwards hop by hop, so a single
-        congested link can pause switches carrying flows that never touched it — congestion
+        congested link can pause switches carrying flows that never touched it - congestion
         spreads to victims. Cyclic buffer dependencies between paused ports can deadlock a
         region of the fabric outright. And a single misbehaving adapter emitting pause frames
         can quiet its whole neighbourhood. Microsoft's production account of running RoCEv2 at
@@ -119,7 +119,7 @@ import SpecTable from '../components/SpecTable.astro';
         problem".<Cite ids="guo-roce" />
       </p>
       <p>
-        None of these is a reason not to use Ethernet — the same paper is a report of solving
+        None of these is a reason not to use Ethernet - the same paper is a report of solving
         them, and Spectrum-X exists partly because they are solvable. It is a reason the two
         options are not equivalent work: credits make the failure structurally impossible, while
         PFC makes it a thing you configure against.
@@ -129,7 +129,7 @@ import SpecTable from '../components/SpecTable.astro';
         <T id="subnet-manager">subnet manager</T> with a complete map of the fabric. Spectrum-X
         gets its equivalent behaviour from the switch and SuperNIC working "in tight coordination"
         to route adaptively.<Cite ids="nv-spectrumx" /> Centralised knowledge versus coordinated
-        endpoints — a real architectural difference, with real consequences for both what the
+        endpoints - a real architectural difference, with real consequences for both what the
         fabric can offer and what has to be running for it to work.
       </p>
     </L>
@@ -145,7 +145,7 @@ import SpecTable from '../components/SpecTable.astro';
       <p>
         Ethernet brings the opposite set. No single authority to depend on, an enormous
         operational ecosystem, staff who already know it, and multi-tenancy that InfiniBand
-        addresses less naturally — NVIDIA positions Spectrum-X explicitly for "multi-tenant
+        addresses less naturally - NVIDIA positions Spectrum-X explicitly for "multi-tenant
         generative AI factories".<Cite ids="nv-spectrumx" /> For a single-tenant training cluster
         that is not worth much. For a cloud provider selling slices of one, it may be the whole
         argument.
@@ -156,7 +156,7 @@ import SpecTable from '../components/SpecTable.astro';
       <p>
         Neither is the successor to the other. InfiniBand starts lossless and adds an ecosystem;
         Ethernet starts with the ecosystem and adds losslessness. The workload decides which
-        starting point costs less to move from — and for a single-tenant training fabric that is
+        starting point costs less to move from - and for a single-tenant training fabric that is
         usually InfiniBand, while for a multi-tenant one it is usually not.
       </p>
     </Callout>
@@ -165,7 +165,7 @@ import SpecTable from '../components/SpecTable.astro';
       <p>
         Spectrum-X is credited with <S id="spectrumx-gain" /> network performance and 1.9× NCCL
         performance across data centres.<Cite ids="nv-spectrumx" /> Both are published without a
-        measured configuration — no topology, no message sizes, no baseline named beyond
+        measured configuration - no topology, no message sizes, no baseline named beyond
         "standard Ethernet". Compare that with
         <a href="/inference#numbers">the MLPerf figures</a> elsewhere on this site, which state
         their GPU counts and workloads. These are quoted here as vendor claims because that is
@@ -189,8 +189,8 @@ import SpecTable from '../components/SpecTable.astro';
         outer tier is made of.
       </p>
       <p>
-        Similarly, the reason the outer tier matters — that per-GPU bandwidth falls from
-        <S id="nvlink-egress" /> to <S id="cx8-egress" /> at the rack wall — belongs to
+        Similarly, the reason the outer tier matters - that per-GPU bandwidth falls from
+        <S id="nvlink-egress" /> to <S id="cx8-egress" /> at the rack wall - belongs to
         <a href="/scale-out">chapter 7</a>. That cliff is the same height whichever fabric you
         choose, which is worth stating plainly: nothing in this chapter is a way around it.
       </p>
@@ -204,17 +204,17 @@ import SpecTable from '../components/SpecTable.astro';
       {
         id: 'flow', concern: 'Flow control',
         ib: 'Credits, per virtual lane', eth: 'PFC pause + ECN marking',
-        note: 'The deepest difference. Credits are permission granted before sending, so buffer overflow cannot occur; PFC is a pause sent once buffers are filling, with ECN reducing sender rates end-to-end so it rarely has to. Both deliver a lossless fabric — but PFC pauses travel backwards hop by hop, so congestion spreads to flows that never touched the busy link, cyclic buffer dependencies can deadlock a region outright, and one misbehaving adapter can pause its whole neighbourhood. Microsoft hit all three running RoCEv2 in production, and fixed them; the point is that credits make those failures impossible rather than configurable.',
+        note: 'The deepest difference. Credits are permission granted before sending, so buffer overflow cannot occur; PFC is a pause sent once buffers are filling, with ECN reducing sender rates end-to-end so it rarely has to. Both deliver a lossless fabric - but PFC pauses travel backwards hop by hop, so congestion spreads to flows that never touched the busy link, cyclic buffer dependencies can deadlock a region outright, and one misbehaving adapter can pause its whole neighbourhood. Microsoft hit all three running RoCEv2 in production, and fixed them; the point is that credits make those failures impossible rather than configurable.',
       },
       {
         id: 'routing', concern: 'Routing',
         ib: 'Subnet manager computes every table', eth: 'Switch and SuperNIC coordinate',
-        note: 'InfiniBand has a central authority holding a complete map of the fabric, which is what makes deterministic routing and topology-aware collectives straightforward. Spectrum-X reaches adaptive routing by having the switch and the adapter work in tight coordination instead — no single map, and no single component to depend on.',
+        note: 'InfiniBand has a central authority holding a complete map of the fabric, which is what makes deterministic routing and topology-aware collectives straightforward. Spectrum-X reaches adaptive routing by having the switch and the adapter work in tight coordination instead - no single map, and no single component to depend on.',
       },
       {
         id: 'collectives', concern: 'Collectives',
         ib: 'SHARP v4 in the switch', eth: 'In-switch acceleration',
-        note: 'Reducing inside the switch removes traffic rather than scheduling it better, and it needs something that knows the topology in order to build an aggregation tree. That is easier to offer when a subnet manager already holds the map — which is why in-network reduction and centralised routing tend to arrive together.',
+        note: 'Reducing inside the switch removes traffic rather than scheduling it better, and it needs the subnet manager’s map of the fabric in order to build an aggregation tree. That is easier to offer when a subnet manager already holds the map - which is why in-network reduction and centralised routing tend to arrive together.',
       },
       {
         id: 'mgmt', concern: 'Management',
@@ -228,7 +228,7 @@ import SpecTable from '../components/SpecTable.astro';
       },
       {
         id: 'switch', concern: 'Switch',
-        ib: 'Q3400 — 144 × 800 Gb/s', eth: 'SN6600 128 × 800, SN6800 512 × 800',
+        ib: 'Q3400 - 144 × 800 Gb/s', eth: 'SN6600 128 × 800, SN6800 512 × 800',
         note: 'Comparable radix, and in one case higher: the SN6800 fits 512 ports of 800 G into 5U, the largest port count on either side. Radix is what decides how many tiers a fabric needs, so this is a topology argument rather than a throughput one.',
       },
       {
@@ -293,7 +293,7 @@ import SpecTable from '../components/SpecTable.astro';
 
         const r = sel ? ROWS.find((x) => x.id === sel) : undefined;
         panel.innerHTML = r
-          ? `<h5>${r.concern}${sel === pinned ? ' <span class="count">pinned — click again to release</span>' : ''}</h5>` +
+          ? `<h5>${r.concern}${sel === pinned ? ' <span class="count">pinned - click again to release</span>' : ''}</h5>` +
             `<p style="color:var(--ink-3)">InfiniBand: ${r.ib} &nbsp;·&nbsp; Spectrum-X: ${r.eth}</p>` +
             `<p>${r.note}</p>`
           : IDLE;

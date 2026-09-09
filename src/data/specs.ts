@@ -4,7 +4,7 @@
  * be rendered as a bare single number.
  *
  * `disputed: true` means published sources genuinely disagree. Those render
- * with a range and a visible marker — see the Caveats section of the research
+ * with a range and a visible marker - see the Caveats section of the research
  * report and /sources#disputed.
  */
 export interface Spec {
@@ -27,21 +27,21 @@ const list: Spec[] = [
   { id: 'gpus', label: 'Blackwell GPUs per rack', value: '72', sources: ['nv-gb200'] },
   { id: 'cpus', label: 'Grace CPUs per rack', value: '36', sources: ['nv-gb200'] },
   { id: 'superchips', label: 'GB200 Superchips per rack', value: '36', sources: ['nv-gb200'] },
-  { id: 'compute-trays', label: 'Compute trays', value: '18', unit: '× 1U', note: 'Split 8 and 10 around the switch band rather than evenly — Supermicro’s rack diagram lists ten above the NVLink switches and eight below.', sources: ['supermicro', 'sth-teardown'] },
+  { id: 'compute-trays', label: 'Compute trays', value: '18', unit: '× 1U', note: 'Split 8 and 10 around the switch band rather than evenly - Supermicro’s rack diagram lists ten above the NVLink switches and eight below.', sources: ['supermicro', 'sth-teardown'] },
   { id: 'switch-trays', label: 'NVSwitch trays', value: '9', sources: ['sth-teardown'] },
   { id: 'switch-asics', label: 'NVSwitch5 ASICs', value: '18', note: '2 per switch tray.', sources: ['nv-nvlink'] },
-  { id: 'rack-weight', label: 'Rack weight', value: '~1.36', unit: 't', note: 'About 3,000 lb — a floor-loading problem for most existing halls. NVIDIA’s OCP contribution describes over 100 lb of added reinforcement steel in the frame alone.', sources: ['sth-teardown', 'nv-ocp'] },
+  { id: 'rack-weight', label: 'Rack weight', value: '~1.36', unit: 't', note: 'About 3,000 lb - a floor-loading problem for most existing halls. NVIDIA’s OCP contribution describes over 100 lb of added reinforcement steel in the frame alone.', sources: ['sth-teardown', 'nv-ocp'] },
   { id: 'rack-height', label: 'Rack height', value: '2,236', unit: 'mm', note: 'Roughly a 42U-class footprint; ORv3-inspired / NVIDIA MGX reference rack.', sources: ['supermicro'] },
   { id: 'rack-width', label: 'Rack width', value: '600', unit: 'mm', sources: ['supermicro'] },
   { id: 'rack-depth', label: 'Rack depth', value: '1,068', unit: 'mm', sources: ['supermicro'] },
-  { id: 'power-shelves', label: 'Power shelves', value: '8', unit: '× 1U', note: 'Arranged 4 + 4, each 33 kW from six 5.5 kW supplies — 132 kW of installed shelf capacity feeding the busbar.', sources: ['supermicro'] },
+  { id: 'power-shelves', label: 'Power shelves', value: '8', unit: '× 1U', note: 'Arranged 4 + 4, each 33 kW from six 5.5 kW supplies - 132 kW of installed shelf capacity feeding the busbar.', sources: ['supermicro'] },
   { id: 'busbar-current', label: 'Busbar current capacity', value: '1,400', unit: 'A', sources: ['nv-ocp'] },
 
   // ── Memory ─────────────────────────────────────────────────────────────
   {
     id: 'hbm-total', label: 'Pooled HBM3e per rack', value: '~13.5', unit: 'TB',
     range: '13.4 – 13.8 TB', disputed: true,
-    note: 'Sources differ on rounding, on physical versus usable-after-ECC capacity, and on SKU. NVIDIA’s 192 GB per GPU gives 13.82 TB physical and 12.96 TB after ECC; Supermicro’s datasheet quotes up to 372 GB per Superchip — 186 GB per GPU — which is where the 13.4 TB figure comes from.',
+    note: 'Sources differ on rounding, on physical versus usable-after-ECC capacity, and on SKU. NVIDIA’s 192 GB per GPU gives 13.82 TB physical and 12.96 TB after ECC; Supermicro’s datasheet quotes up to 372 GB per Superchip - 186 GB per GPU - which is where the 13.4 TB figure comes from.',
     sources: ['nv-gb200', 'supermicro', 'semianalysis-gb200'],
   },
   { id: 'hbm-per-gpu', label: 'HBM3e per Blackwell GPU', value: '192', unit: 'GB', note: '180 GB usable after ECC.', sources: ['nv-blackwell'] },
@@ -50,7 +50,7 @@ const list: Spec[] = [
   { id: 'mem-total', label: 'Unified memory per rack', value: '~30', unit: 'TB', note: 'HBM3e + LPDDR5X, coherent across NVLink-C2C.', sources: ['nv-gb200'] },
 
   // ── Compute ────────────────────────────────────────────────────────────
-  { id: 'fp4-sparse', label: 'FP4 with sparsity', value: '1,440', unit: 'PFLOPS', note: '1.44 exaFLOPS. This is the headline number and it is sparse — halve it for dense.', sources: ['nv-gb200'] },
+  { id: 'fp4-sparse', label: 'FP4 with sparsity', value: '1,440', unit: 'PFLOPS', note: '1.44 exaFLOPS. This is the headline number and it is sparse - halve it for dense.', sources: ['nv-gb200'] },
   { id: 'fp4-dense', label: 'FP4 dense', value: '~720', unit: 'PFLOPS', sources: ['nv-gb200'] },
   { id: 'fp8', label: 'FP8', value: '720', unit: 'PFLOPS', sources: ['nv-gb200'] },
   { id: 'gpu-fp4', label: 'Peak FP4 per GPU', value: '~20', unit: 'PFLOPS', note: 'Sparse.', sources: ['nv-blackwell'] },
@@ -70,7 +70,7 @@ const list: Spec[] = [
   { id: 'nvlink-links', label: 'NVLink ports per GPU', value: '18', sources: ['nv-nvlink'] },
 
   /*
-   * Egress — one direction only. Every bandwidth comparison between the two
+   * Egress - one direction only. Every bandwidth comparison between the two
    * tiers is really a comparison of these three, and until they were specs
    * they were typed by hand in four chapters and hardcoded in three widget
    * scripts. Note that `nvlink-egress` and `c2c` are both 900 GB/s and are
@@ -78,7 +78,7 @@ const list: Spec[] = [
    * is the Grace↔Blackwell link. Do not conflate them.
    */
   { id: 'nvlink-egress', label: 'NVLink egress per GPU, one direction', value: '900', unit: 'GB/s', note: 'Half of the 1.8 TB/s bidirectional headline. This is the figure to compare against a scale-out line rate, because a NIC’s quoted rate is also one direction.', sources: ['nv-nvlink'] },
-  { id: 'cx7-egress', label: 'ConnectX-7 egress per GPU', value: '50', unit: 'GB/s', note: '400 Gb/s. One NIC per GPU, so this is both the per-NIC and the per-GPU figure — 18× less than the same GPU has inside the rack.', sources: ['nv-gb200'] },
+  { id: 'cx7-egress', label: 'ConnectX-7 egress per GPU', value: '50', unit: 'GB/s', note: '400 Gb/s. One NIC per GPU, so this is both the per-NIC and the per-GPU figure - 18× less than the same GPU has inside the rack.', sources: ['nv-gb200'] },
   { id: 'cx8-egress', label: 'ConnectX-8 egress per GPU', value: '100', unit: 'GB/s', note: '800 Gb/s. Still 9× less than in-rack NVLink egress.', sources: ['nv-gb300'] },
   { id: 'nvswitch-asic', label: 'Bandwidth per NVSwitch5 ASIC', value: '28.8', unit: 'Tb/s', note: '7.2 TB/s; 36 + 36 ports. Lower than a raw 51.2 Tb/s switch because silicon budget goes to SHARP in-network reduction engines.', sources: ['nv-nvlink'] },
   { id: 'alltoall', label: 'All-to-all NVLink bandwidth in-rack', value: '130', unit: 'TB/s', sources: ['nv-gb200'] },
@@ -111,7 +111,7 @@ const list: Spec[] = [
   {
     id: 'retrofit-cost', label: 'Cost of liquid cooling per MW', value: '~$2M retrofit',
     range: '~$2M per MW to retrofit · upwards of $11M per MW for a new greenfield liquid-cooled build', disputed: true,
-    note: 'STL Partners, May 2026. A widely repeated "$5–10M per MW" retrofit figure is often attributed to Schneider Electric; it does not appear in the Schneider article this site cites, and no primary source for it could be found — so it is not used here.',
+    note: 'STL Partners, May 2026. A widely repeated "$5–10M per MW" retrofit figure is often attributed to Schneider Electric; it does not appear in the Schneider article this site cites, and no primary source for it could be found - so it is not used here.',
     sources: ['stl-retrofit'],
   },
 
@@ -127,30 +127,30 @@ const list: Spec[] = [
 
   // ── The fabric ─────────────────────────────────────────────────────────
   { id: 'xdr-rate', label: 'XDR per-port rate', value: '800', unit: 'Gb/s', note: 'Four lanes at 200 Gb/s. Quantum-X800 generation.', sources: ['nv-ib-switching', 'nv-quantum-x800'] },
-  { id: 'ndr-rate', label: 'NDR per-port rate', value: '400', unit: 'Gb/s', note: 'Four lanes at 100 Gb/s. Quantum-2 generation, which NVIDIA positions "for Hopper-generation or cost-optimized deployments" — and which is what the DGX GB200 SuperPOD reference architecture actually specifies, with ConnectX-7.', sources: ['nv-ib-switching', 'nv-superpod-components'] },
-  { id: 'q3400-ports', label: 'Quantum-X800 Q3400 switch', value: '144 × 800', unit: 'Gb/s', note: 'XDR, over 72 OSFP cages — two ports per cage. Around 115 Tb/s of switching capacity in one box.', sources: ['nv-xdr-switches', 'nv-quantum-x800'] },
+  { id: 'ndr-rate', label: 'NDR per-port rate', value: '400', unit: 'Gb/s', note: 'Four lanes at 100 Gb/s. Quantum-2 generation, which NVIDIA positions "for Hopper-generation or cost-optimized deployments" - and which is what the DGX GB200 SuperPOD reference architecture actually specifies, with ConnectX-7.', sources: ['nv-ib-switching', 'nv-superpod-components'] },
+  { id: 'q3400-ports', label: 'Quantum-X800 Q3400 switch', value: '144 × 800', unit: 'Gb/s', note: 'XDR, over 72 OSFP cages - two ports per cage. Around 115 Tb/s of switching capacity in one box.', sources: ['nv-xdr-switches', 'nv-quantum-x800'] },
   { id: 'q3200-ports', label: 'Quantum-X800 Q3200 switch', value: '36 × 800', unit: 'Gb/s', note: '2U air-cooled, 18 OSFP cages. NVIDIA positions it for large or mixed-generation environments.', sources: ['nv-xdr-switches', 'nv-ib-switching'] },
   { id: 'xdr-copper-reach', label: 'Active copper reach at 1.6 Tb/s', value: '1.1 – 3', unit: 'm', note: 'OSFP active copper cable. Enough to cross a rack or reach the one beside it, and nothing further.', sources: ['nv-xdr-switches'] },
   { id: 'xdr-optics-reach', label: 'Single-mode optical reach at 1.6 Tb/s', value: 'up to 500', unit: 'm', note: 'Twin-port 2×DR4 transceiver, 1310 nm single-mode fibre. Two orders of magnitude more reach than copper, at a power and cost premium per link.', sources: ['nv-xdr-switches'] },
   { id: 'fat-tree-2tier', label: 'Endpoints in a two-tier fat tree', value: 'over 10,000', note: 'NVIDIA’s figure for Quantum-X800. The arithmetic behind it: a radix-144 switch with half its ports facing downward gives 144 × 72 = 10,368 endpoints before a third tier is needed.', sources: ['nv-ib-switching'] },
-  { id: 'superpod-rails', label: 'InfiniBand rails per compute tray', value: '4', note: 'One per GPU — the tray carries four ConnectX-7 NICs. Same-numbered GPUs across racks share a rail, so "traffic per rail of each compute tray is always one hop away from other compute trays in the same Scalable Unit".', sources: ['nv-superpod-components', 'nv-superpod-fabrics'] },
+  { id: 'superpod-rails', label: 'InfiniBand rails per compute tray', value: '4', note: 'One per GPU - the tray carries four ConnectX-7 NICs. Same-numbered GPUs across racks share a rail, so "traffic per rail of each compute tray is always one hop away from other compute trays in the same Scalable Unit".', sources: ['nv-superpod-components', 'nv-superpod-fabrics'] },
   { id: 'slg-leaf', label: 'Leaf switches per spine-leaf group', value: '8', note: 'One for each compute rack.', sources: ['nv-superpod-fabrics'] },
   { id: 'slg-spine', label: 'Spine switches per spine-leaf group', value: '6', note: 'Giving a fully non-blocking fat tree per Scalable Unit, attached to six core groups.', sources: ['nv-superpod-fabrics'] },
   { id: 'superpod-bf3', label: 'BlueField-3 per compute tray', value: '2 × 200', unit: 'Gb/s', note: 'Separate from the compute fabric entirely: in-band management and storage. The scale-out GPU traffic never touches these.', sources: ['nv-superpod-components'] },
   {
     id: 'leaf-switches', label: 'Leaf switches at maximum scale', value: '128',
     range: '128 (GB200 product page) vs 64 leaf and 384 spine (DGX GB200 SuperPOD reference architecture at 16 SUs)', disputed: true,
-    note: 'Almost certainly two different reference designs rather than a genuine contradiction — the product page and the SuperPOD architecture do not describe the same build. Do not mix the two figures inside one calculation.',
+    note: 'Almost certainly two different reference designs rather than a genuine contradiction - the product page and the SuperPOD architecture do not describe the same build. Do not mix the two figures inside one calculation.',
     sources: ['nv-gb200', 'nv-superpod-fabrics'],
   },
   { id: 'sharp-v4', label: 'SHARP version on Quantum-X800', value: 'v4', note: 'In-network reduction on the scale-out switch. Distinct from, and composable with, the SHARP engines inside the in-rack NVSwitch.', sources: ['nv-quantum-x800'] },
   { id: 'sn6600-ports', label: 'Spectrum SN6600 Ethernet switch', value: '128 × 800', unit: 'Gb/s', sources: ['nv-spectrumx'] },
-  { id: 'sn6800-ports', label: 'Spectrum SN6800 Ethernet switch', value: '512 × 800', unit: 'Gb/s', note: 'In a 5U chassis — the highest radix on either side of the InfiniBand/Ethernet line.', sources: ['nv-spectrumx'] },
+  { id: 'sn6800-ports', label: 'Spectrum SN6800 Ethernet switch', value: '512 × 800', unit: 'Gb/s', note: 'In a 5U chassis - the highest radix on either side of the InfiniBand/Ethernet line.', sources: ['nv-spectrumx'] },
   { id: 'cx9', label: 'ConnectX-9 SuperNIC', value: '1,600', unit: 'Gb/s', announced: true, note: 'Per GPU, via four 200 Gb/s SerDes. Listed on NVIDIA’s Spectrum-X platform page; treat as announced rather than measured.', sources: ['nv-spectrumx'] },
-  { id: 'spectrumx-gain', label: 'Spectrum-X network performance claim', value: '1.6×', note: 'NVIDIA’s claim against standard Ethernet, published without a measured configuration alongside it — unlike the MLPerf figures elsewhere on this site, which name their setup. Quoted here as a vendor claim, not a result.', sources: ['nv-spectrumx'] },
+  { id: 'spectrumx-gain', label: 'Spectrum-X network performance claim', value: '1.6×', note: 'NVIDIA’s claim against standard Ethernet, published without a measured configuration alongside it - unlike the MLPerf figures elsewhere on this site, which name their setup. Quoted here as a vendor claim, not a result.', sources: ['nv-spectrumx'] },
 
   // ── Results ────────────────────────────────────────────────────────────
-  { id: 'mlperf-405b', label: 'Llama 3.1 405B training time', value: '27.3', unit: 'min', note: 'MLPerf Training v5.0, 4 June 2025: 27.33 minutes on 2,496 Blackwell GPUs across 39 racks running 64 active GPUs each — not fully populated 72-GPU racks, which is why 2,496 does not divide by 72. CoreWeave puts an equivalent H100 setup at around 156 racks, assuming 32 GPUs per rack. A later round reached about 10 minutes on more than 5,000 Blackwell GPUs.', sources: ['coreweave-pr', 'mlcommons'] },
+  { id: 'mlperf-405b', label: 'Llama 3.1 405B training time', value: '27.3', unit: 'min', note: 'MLPerf Training v5.0, 4 June 2025: 27.33 minutes on 2,496 Blackwell GPUs across 39 racks running 64 active GPUs each - not fully populated 72-GPU racks, which is why 2,496 does not divide by 72. CoreWeave puts an equivalent H100 setup at around 156 racks, assuming 32 GPUs per rack. A later round reached about 10 minutes on more than 5,000 Blackwell GPUs.', sources: ['coreweave-pr', 'mlcommons'] },
   { id: 'mlperf-nvfp4', label: 'Blackwell NVFP4 training speedup vs Hopper FP8', value: 'up to 3.2×', note: 'MLPerf Training v5.1, Llama 3.1 405B, at the same GPU count.', sources: ['nv-devblog-mlperf'] },
   { id: 'mlperf-ultra', label: 'GB300 training speedup', value: '4.2× vs Hopper, 1.9× vs GB200', note: 'At 512-GPU scale.', sources: ['nv-devblog-mlperf'] },
   { id: 'disagg-gain', label: 'Disaggregated vs aggregated serving', value: '~1.5×', unit: 'throughput', note: 'MLPerf Inference v5.1, Llama 3.1 405B interactive.', sources: ['mlcommons', 'nv-dynamo', 'nv-devblog-moe'] },
@@ -161,7 +161,7 @@ const list: Spec[] = [
   { id: 'gb300-hbm', label: 'HBM3e per Blackwell Ultra GPU', value: '288', unit: 'GB', range: '279 GB vs 288 GB', disputed: true, note: 'SKU and ECC accounting. Note that NVIDIA’s own MLPerf Training v5.1 blog quotes 279 GB, so this is not simply a case of secondary sources getting it wrong.', sources: ['nv-gb300', 'nv-devblog-mlperf'] },
   { id: 'gb300-power', label: 'Power per Blackwell Ultra GPU', value: '~1,400', unit: 'W', sources: ['nv-gb300'] },
   { id: 'gb300-fp4', label: 'GB300 FP4 uplift', value: '1.5×', note: 'Relative to GB200.', sources: ['nv-gb300'] },
-  { id: 'rubin-fp4', label: 'Vera Rubin NVL144 FP4', value: '~3.6', unit: 'EF', announced: true, note: 'Announced for 2H 2026. Note that "144" counts dies, not packages — there are 72 Rubin packages.', sources: ['nv-gb300'] },
+  { id: 'rubin-fp4', label: 'Vera Rubin NVL144 FP4', value: '~3.6', unit: 'EF', announced: true, note: 'Announced for 2H 2026. Note that "144" counts dies, not packages - there are 72 Rubin packages.', sources: ['nv-gb300'] },
   { id: 'power-smoothing', label: 'Reduction in peak grid demand from power smoothing', value: 'up to 30', unit: '%', note: 'Measured on GB300 NVL72 training Megatron, using programmable power caps, energy-storage-enhanced power shelves with integrated electrolytic capacitors, and a hardware power burner across ramp-up, steady-state and ramp-down. NVIDIA states the feature is also coming to GB200 NVL72.', sources: ['nv-devblog-power'] },
   { id: 'next-gen-power', label: 'Next-generation rack power', value: '240', unit: 'kW', announced: true, note: 'Schneider Electric, forward-looking: "The next generation, expected in under a year, will require 240 kW per rack."', sources: ['schneider'] },
 ];

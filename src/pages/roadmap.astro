@@ -9,7 +9,7 @@ import SpecTable from '../components/SpecTable.astro';
 ---
 <Base
   title="Roadmap"
-  description="GB300 today, Vera Rubin NVL144 announced for 2H 2026, and the rack power curve underneath all of it — with announced figures clearly separated from measured ones."
+  description="GB300 today, Vera Rubin NVL144 announced for 2H 2026, and the rack power curve underneath all of it - with announced figures clearly separated from measured ones."
   heading="Roadmap"
   slug="/roadmap"
 >
@@ -96,7 +96,7 @@ import SpecTable from '../components/SpecTable.astro';
     <Callout kind="caveat">
       <p>
         Per-GPU memory on Blackwell Ultra is quoted as both 279 GB and 288 GB depending on the
-        source — SKU and ECC accounting again. Shown here as <S id="gb300-hbm" /> with the range
+        source - SKU and ECC accounting again. Shown here as <S id="gb300-hbm" /> with the range
         attached, like every other figure the sources disagree about.
       </p>
     </Callout>
@@ -110,7 +110,7 @@ import SpecTable from '../components/SpecTable.astro';
 
     <p>
       GB300 also brings the power-smoothing hardware described in
-      <a href="/power-cooling#load-swings">Chapter 6</a> — programmable caps, capacitor-backed power
+      <a href="/power-cooling#load-swings">Chapter 6</a> - programmable caps, capacitor-backed power
       shelves and a hardware power burner, measured at <S id="power-smoothing" /> off peak grid
       demand.<Cite ids="nv-devblog-power" /> That is a roadmap item aimed at the facility rather
       than the silicon, and it is a fair signal of where the binding constraint is moving.
@@ -119,7 +119,7 @@ import SpecTable from '../components/SpecTable.astro';
     <L min={2}>
       <p>
         The naming deserves a note, because it breaks the pattern the previous two generations set.
-        "NVL72" counted 72 GPU packages. "NVL144" counts 144 <em>dies</em> across 72 packages — the
+        "NVL72" counted 72 GPU packages. "NVL144" counts 144 <em>dies</em> across 72 packages - the
         same package count as today, with the die-per-package doubling now surfaced in the product
         name. It is not a doubling of the NVLink domain's endpoint count, and reading it as one
         will produce wrong capacity planning.
@@ -148,8 +148,8 @@ import SpecTable from '../components/SpecTable.astro';
         path.
       </p>
       <p>
-        Everything this site describes about NVL72 — the busbar, the copper spine, the mandatory
-        liquid loop, the 1.36-tonne frame — is a set of answers to that curve at 120 kW. Each
+        Everything this site describes about NVL72 - the busbar, the copper spine, the mandatory
+        liquid loop, the 1.36-tonne frame - is a set of answers to that curve at 120 kW. Each
         subsequent generation is the same question asked again at a larger number.
       </p>
     </L>

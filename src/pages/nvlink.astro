@@ -42,7 +42,7 @@ import SpecTable from '../components/SpecTable.astro';
         Each Blackwell GPU exposes <S id="nvlink-links" /> NVLink 5 ports at 100 GB/s
         bidirectional, totalling <S id="nvlink-per-gpu" />. Each NVSwitch tray carries two
         NVSwitch5 ASICs, and with <S id="switch-trays" /> trays that is
-        <S id="switch-asics" /> ASICs — exactly the port count per GPU.<Cite ids={['nv-nvlink', 'glennklockwood']} />
+        <S id="switch-asics" /> ASICs - exactly the port count per GPU.<Cite ids={['nv-nvlink', 'glennklockwood']} />
       </p>
       <p>
         Connect port <em>n</em> of each GPU to switch <em>n</em>, and every switch sees all 72
@@ -69,7 +69,7 @@ import SpecTable from '../components/SpecTable.astro';
         <g data-switches></g>
       </svg>
       <dl class="readout" style="margin-top:0.75rem">
-        <div><dt>Selected</dt><dd data-out="sel">—</dd></div>
+        <div><dt>Selected</dt><dd data-out="sel">-</dd></div>
         <div><dt>Links from this GPU</dt><dd data-out="links">18</dd></div>
         <div><dt>Bandwidth, all ports</dt><dd data-out="bw">1.8 TB/s</dd></div>
         <div><dt>Reachable in one hop</dt><dd data-out="hop">71 GPUs</dd></div>
@@ -93,13 +93,13 @@ import SpecTable from '../components/SpecTable.astro';
         figure to derate collectives against, and no distinction between "near" and "far" peers
         within the rack. A parallelism strategy can be chosen on numerical and load-balance
         grounds instead of being contorted to keep high-traffic dimensions inside an 8-GPU node.
-        Every one of those absent concepts is a real thing one tier out — Part II is where they
+        Every one of those absent concepts is a real thing one tier out - Part II is where they
         are defined, and the negation reads better once you can see what is being negated.
       </p>
       <p>
         The one thing it does not remove is the rack boundary. Inside, per-GPU egress is
         <S id="nvlink-egress" />; across racks it is <S id="cx7-egress" /> on ConnectX-7 or
-        <S id="cx8-egress" /> on ConnectX-8 — a factor of nine to eighteen. Every serious
+        <S id="cx8-egress" /> on ConnectX-8 - a factor of nine to eighteen. Every serious
         deployment decision at this scale is about which model dimension gets to cross that line.
         <a href="/scale-out">Chapter 7</a> takes that up.
       </p>
@@ -115,8 +115,8 @@ import SpecTable from '../components/SpecTable.astro';
     <L min={2}>
       <p>
         NVSwitch carries <T id="sharp">SHARP</T> engines, which perform reductions and multicast
-        <em>inside</em> the switch. In an all-reduce — the collective that dominates distributed
-        training — partial results are combined as they pass through the fabric instead of being
+        <em>inside</em> the switch. In an all-reduce - the collective that dominates distributed
+        training - partial results are combined as they pass through the fabric instead of being
         shuttled between GPUs and summed at the endpoints. That roughly halves the bytes on the
         wire and removes a round trip from the critical path.
       </p>
@@ -193,8 +193,9 @@ import SpecTable from '../components/SpecTable.astro';
       </p>
       <p>
         Against <S id="rack-power" /> that is about a sixth of the rack's budget spent moving data
-        a metre and a half. At that reach copper is both far cheaper and far more efficient — and
-        the price of using it is that the switches must sit in the middle of the rack and the trays
+        a metre and a half. Copper over that distance needs no transceiver at all, so it draws
+        none of that power - and the price of using it is that the switches must sit in the middle
+        of the rack and the trays
         must be close-packed around them. The rack's physical arrangement is downstream of this
         one decision.
       </p>
@@ -301,7 +302,7 @@ import SpecTable from '../components/SpecTable.astro';
         }
         for (const r of swRects) r.setAttribute('opacity', g === null ? '0.9' : '1');
         placePin();
-        if (g === null) { draw([], 0); out('sel').textContent = '—'; return; }
+        if (g === null) { draw([], 0); out('sel').textContent = '-'; return; }
         draw([g], 0.75);
         out('sel').textContent =
           `GPU ${g + 1} · tray ${gpuPos[g].tray + 1}${g === pinned ? ' · pinned' : ''}`;

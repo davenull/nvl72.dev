@@ -2,7 +2,7 @@
  * Procedural GB200 NVL72 rack.
  *
  * Deliberately *not* a downloaded or authored glTF. NVIDIA publishes no CAD for
- * this rack, so the geometry had to be original anyway — and a rack is an
+ * this rack, so the geometry had to be original anyway - and a rack is an
  * assembly of rectangular trays on a regular pitch, which generates cleanly
  * from parameters. That buys us:
  *   · zero asset bytes over the wire (no Draco decoder, no KTX2, no R2 fetch),
@@ -29,7 +29,7 @@ export interface RackPart {
    * Offset from the group's origin to the visual centre of its geometry.
    * Parts like the busbar and the spine are groups sitting at the origin whose
    * children carry absolute positions, so the group origin is at the rack's
-   * base — using it as the focus target aimed the camera at the floor.
+   * base - using it as the focus target aimed the camera at the floor.
    */
   anchorOffset: THREE.Vector3;
 }
@@ -159,7 +159,7 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
   /**
    * Every part gets its own copies of the materials it uses.
    *
-   * The palette above is shared — compute trays and switch trays both draw
+   * The palette above is shared - compute trays and switch trays both draw
    * from `mat.tray`, the spine and the switch faces both draw from
    * `mat.copper`. Highlighting by mutating those shared instances meant the
    * last mesh traversed decided the opacity for everything using that
@@ -181,7 +181,7 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
         // three.js bakes an OPAQUE define into the fragment shader for
         // materials that are not transparent, and that define forces alpha to
         // 1 no matter what the opacity uniform says. Flipping `transparent`
-        // later therefore does nothing until `needsUpdate` forces a recompile —
+        // later therefore does nothing until `needsUpdate` forces a recompile -
         // which, across the ~330 materials in this rack, would stutter on every
         // hover. Declaring transparency once means highlighting only ever
         // animates `opacity`, which is a plain uniform.
@@ -346,7 +346,7 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
   const spine = new THREE.Group();
   {
     // Four cable cartridges spanning the switch band, drawn as dense copper
-    // ribbons rather than 5,000 individual cables — the count is stated in text.
+    // ribbons rather than 5,000 individual cables - the count is stated in text.
     const bandBottom = trayBandBottom;
     const h = trayBandTop - trayBandBottom;
     for (let c = 0; c < 4; c++) {
@@ -559,7 +559,7 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
   }
 
   /**
-   * The representative part used as a focus target for a whole group — the
+   * The representative part used as a focus target for a whole group - the
    * middle tray of the eighteen, the single busbar, and so on.
    */
   const focusAnchor = new Map<string, RackPart>();
@@ -610,7 +610,7 @@ export function mountRack(canvas: HTMLCanvasElement, opts: Options = {}): RackHa
       p.object.position.copy(p.home).addScaledVector(p.dir, explode * p.dist);
     }
     // The frame fades as the rack comes apart, so it never occludes the guts.
-    // Only the frame's own materials — while a part is highlighted, setHighlight
+    // Only the frame's own materials - while a part is highlighted, setHighlight
     // owns every material and this must keep its hands off.
     if (!highlight) {
       const frameOpacity = Math.max(0.12, 1 - explode * 0.85);

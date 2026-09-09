@@ -16,7 +16,7 @@ const labels: Record<string, string> = {
 ---
 <figure class="widget" data-rack-widget data-auto-rotate={autoRotate ? '1' : '0'}>
   <div class="widget-head">
-    <h4>GB200 NVL72 — schematic rack</h4>
+    <h4>GB200 NVL72 - schematic rack</h4>
     <span class="hint" data-rack-readout>Drag to rotate · scroll to zoom · click a part</span>
   </div>
 
@@ -48,7 +48,7 @@ const labels: Record<string, string> = {
         </div>
       </div>
       <div class="part-panel" data-part-panel aria-live="polite">
-        <p class="idle">Click a part in the model — or a name above — to read what it does. Everything here is also written out below the figure.</p>
+        <p class="idle">Click a part in the model - or a name above - to read what it does. Everything here is also written out below the figure.</p>
       </div>
     </>
   )}
@@ -63,7 +63,7 @@ const labels: Record<string, string> = {
 <script>
   import type { RackHandle } from '../scripts/rack';
 
-  const IDLE = '<p class="idle">Click a part in the model — or a name above — to read what it does. Everything here is also written out below the figure.</p>';
+  const IDLE = '<p class="idle">Click a part in the model - or a name above - to read what it does. Everything here is also written out below the figure.</p>';
 
   document.querySelectorAll<HTMLElement>('[data-rack-widget]').forEach((widget) => {
     const canvas = widget.querySelector<HTMLCanvasElement>('[data-rack]')!;

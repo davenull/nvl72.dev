@@ -12,7 +12,7 @@ import { partInfo } from '../scripts/rack-parts';
 ---
 <Base
   title="Anatomy of the Rack"
-  description="Eighteen compute trays, nine NVSwitch trays, a copper NVLink spine, a busbar and a coolant loop — the GB200 NVL72 pulled apart part by part."
+  description="Eighteen compute trays, nine NVSwitch trays, a copper NVLink spine, a busbar and a coolant loop - the GB200 NVL72 pulled apart part by part."
   heading="Anatomy of the Rack"
   slug="/anatomy"
 >
@@ -33,8 +33,8 @@ import { partInfo } from '../scripts/rack-parts';
 
     <L at={1}>
       <p>
-        Look at the model from the front and it is a stack of thin drawers. Most of them —
-        eighteen — are <strong>compute trays</strong>, and those hold the chips that do the actual
+        Look at the model from the front and it is a stack of thin drawers. Most of them -
+        eighteen - are <strong>compute trays</strong>, and those hold the chips that do the actual
         work. Nine more, sitting in the middle of the stack, are <strong>switch trays</strong>:
         they do no computing at all, they just connect the other trays to each other.
       </p>
@@ -100,7 +100,7 @@ import { partInfo } from '../scripts/rack-parts';
       <p>
         <strong>"It's just a bigger DGX."</strong> A DGX or HGX system is a server: a baseboard of
         eight GPUs, an x86 host, PCIe between them, and NVLink that stops at the chassis wall.
-        NVL72 moves the unit of integration from the server to the rack — the host CPU changes
+        NVL72 moves the unit of integration from the server to the rack - the host CPU changes
         architecture, PCIe leaves the critical path, and the enclosure itself becomes the thing
         that is designed. <a href="/comparison">The comparison chapter</a> works through what
         actually differs.
@@ -116,8 +116,8 @@ import { partInfo } from '../scripts/rack-parts';
 
     <Deeper title="Why 1.36 tonnes is a bigger problem than it sounds">
       <p>
-        Spread over the rack's 0.64 m² footprint — <S id="rack-width" /> by
-        <S id="rack-depth" /> — <S id="rack-weight" /> is over two tonnes per square metre, before
+        Spread over the rack's 0.64 m² footprint - <S id="rack-width" /> by
+        <S id="rack-depth" /> - <S id="rack-weight" /> is over two tonnes per square metre, before
         you account for the fact that raised-floor tiles are rated for distributed load, not for
         four castors. Many existing halls are rated around 700–1,200 kg/m², so an NVL72 is at or
         past the limit of the floor it would sit on, and the delivery path to get it there has its
@@ -126,7 +126,7 @@ import { partInfo } from '../scripts/rack-parts';
       <p>
         Combined with the <S id="retrofit-cost" /> quoted to add liquid cooling to existing
         space,<Cite ids="stl-retrofit" /> this is a large part of why these racks concentrate in
-        new build rather than spreading into existing colocation — though the same research puts
+        new build rather than spreading into existing colocation - though the same research puts
         a new greenfield liquid-cooled build at roughly five times the per-megawatt cost of a
         retrofit, so the trade is not one-sided.
       </p>
@@ -136,8 +136,8 @@ import { partInfo } from '../scripts/rack-parts';
 
     <p>
       At the back of the rack, four cable cartridges carry <S id="spine-cables" /> copper
-      conductors between the compute trays and the switch trays. Jensen Huang's description —
-      "5,000 NVLink cables, in total, 2 miles" — is close to NVIDIA's own OCP filing, which
+      conductors between the compute trays and the switch trays. Jensen Huang's description -
+      "5,000 NVLink cables, in total, 2 miles" - is close to NVIDIA's own OCP filing, which
       specifies four cartridges delivering <S id="allreduce" /> of AllReduce
       bandwidth.<Cite ids="nv-ocp" />
     </p>
@@ -153,15 +153,15 @@ import { partInfo } from '../scripts/rack-parts';
       <p>
         Against a <S id="rack-power" /> budget, that is roughly one sixth of the rack's entire
         power draw spent on moving data a metre and a half. Copper at that reach costs almost
-        nothing by comparison. The rack's shape — switches centred, trays close-packed, spine
-        short — falls out of the requirement that copper remain viable.
+        nothing by comparison. The rack's shape - switches centred, trays close-packed, spine
+        short - falls out of the requirement that copper remain viable.
       </p>
     </L>
 
     <Callout kind="caveat">
       <p>
-        Cable count is quoted as "over 5,000" by NVIDIA and as 5,184 by several secondary
-        sources. Both appear here as a range rather than a single number; see
+        Cable count is quoted as "over 5,000" by NVIDIA and as 5,184 by SemiAnalysis. Both appear
+        here as a range rather than a single number; see
         <a href="/sources#disputed">the disputed-figures list</a>.
       </p>
     </Callout>

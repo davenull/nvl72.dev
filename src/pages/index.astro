@@ -52,7 +52,7 @@ import { parts } from '../data/chapters';
         This rack does something different. All <S id="gpus" /> of its GPUs are joined by a
         dedicated interconnect that is fast enough that a program can treat another GPU's memory
         almost like its own. You do not send a message and wait; you just read the address.
-        That difference — not the raw component count — is what the whole design is for.
+        That difference - not the raw component count - is what the whole design is for.
       </p>
     </L>
 
@@ -84,7 +84,7 @@ import { parts } from '../data/chapters';
       <p>
         The port arithmetic is worth doing explicitly, because it is the entire argument.
         Each Blackwell GPU exposes 18 NVLink 5 ports at 100 GB/s bidirectional. The rack contains
-        <S id="switch-trays" bare /> NVSwitch trays of two ASICs each — <S id="switch-asics" bare />
+        <S id="switch-trays" bare /> NVSwitch trays of two ASICs each - <S id="switch-asics" bare />
         ASICs, exactly matching the port count per GPU. Wire port <em>n</em> of every GPU to switch
         <em>n</em> and you get a single-layer fabric with no oversubscription and no second tier:
         72 endpoints × 18 ports, against 18 switches × 72 ports. There is no topology to be clever
@@ -102,7 +102,7 @@ import { parts } from '../data/chapters';
       <p>
         Everything else on this site follows from one design decision: extend the coherent,
         load/store interconnect that used to stop at the edge of a server board all the way to the
-        edge of a rack — and then pay whatever it costs in power, copper and plumbing to make that
+        edge of a rack - and then pay whatever it costs in power, copper and plumbing to make that
         physically possible.
       </p>
     </Callout>
@@ -128,7 +128,7 @@ import { parts } from '../data/chapters';
         <h3>Copper cables</h3>
         <p>
           About two miles of them in four cartridges. Optical would have cost roughly
-          <S id="optical-penalty" /> in transceivers alone — a sixth of the rack's power budget,
+          <S id="optical-penalty" /> in transceivers alone - a sixth of the rack's power budget,
           to move data 1.5 m.
         </p>
       </div>
@@ -167,16 +167,16 @@ import { parts } from '../data/chapters';
 
     <p>
       <strong>There is a depth control in the header.</strong> "New grad", "Engineer" and
-      "Architect" rewrite the same pages at different levels — plain language, systems detail, or
+      "Architect" rewrite the same pages at different levels - plain language, systems detail, or
       full port arithmetic and thermal budgets. It is not a summary toggle; the deeper levels say
       different things, not more things. Try switching it now and re-reading the section above.
     </p>
 
     <p>
       <strong>Numbers are hoverable, and disagreement is shown rather than hidden.</strong>
-      Every figure links back to where it came from. Where published sources genuinely conflict —
+      Every figure links back to where it came from. Where published sources genuinely conflict -
       pooled HBM is quoted anywhere from 13.4 to 13.8 TB depending on whether you count physical or
-      post-ECC capacity — the figure is marked
+      post-ECC capacity - the figure is marked
       <span style="color:var(--amber)">±</span> and hovering it shows the range.
       <a href="/sources#disputed">All of them are listed together.</a>
     </p>

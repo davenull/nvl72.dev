@@ -51,7 +51,7 @@ export const sources: Source[] = [
     kind: 'primary',
     url: 'https://www.nvidia.com/en-us/data-center/grace-cpu-superchip/',
     verified: true,
-    note: 'Describes the standalone Grace Superchip. The GB200 Grace is configured differently — do not capacity-plan from this page.',
+    note: 'Describes the standalone Grace Superchip. The GB200 Grace is configured differently - do not capacity-plan from this page.',
   },
   {
     id: 'nv-nvlink',
@@ -237,7 +237,7 @@ export const sources: Source[] = [
   {
     id: 'schneider',
     title: 'Why Liquid Cooling For AI Data Centers Is Harder Than It Looks',
-    publisher: 'Steven Carlini, Schneider Electric — Forbes Technology Council',
+    publisher: 'Steven Carlini, Schneider Electric - Forbes Technology Council',
     kind: 'independent',
     url: 'https://www.forbes.com/councils/forbestechcouncil/2025/06/30/why-liquid-cooling-for-ai-data-centers-is-harder-than-it-looks/',
     verified: true,
@@ -273,7 +273,7 @@ export const sources: Source[] = [
     url: 'https://www.ieee802.org/1/files/public/docs2014/new-dcb-crupnicoff-ibcreditstutorial-0314.pdf',
     verified: true,
     date: 'March 2014',
-    note: 'Read directly. The clearest public account of why InfiniBand does not drop: "In-band Delivery of Flow Control Credits — vs. pause/xon-xoff schemes", credits counted absolutely as the "total allowed since initialization of the link", and resiliency — losing a credit update — named as the primary challenge. Points at IBTA Volume 1, section 7.9.',
+    note: 'Read directly. The clearest public account of why InfiniBand does not drop: "In-band Delivery of Flow Control Credits — vs. pause/xon-xoff schemes", credits counted absolutely as the "total allowed since initialization of the link", and resiliency - losing a credit update - named as the primary challenge. Points at IBTA Volume 1, section 7.9.',
   },
   {
     id: 'ibta-spec',
@@ -282,7 +282,7 @@ export const sources: Source[] = [
     kind: 'standard',
     url: 'https://www.infinibandta.org/',
     verified: false,
-    note: 'The normative source, but it is not openly downloadable — access requires IBTA registration, so it has not been read here. The section reference and the per-virtual-lane credit behaviour are corroborated by the IEEE tutorial above, which cites it directly. Confirm against the specification itself before treating any wording as normative.',
+    note: 'The normative source, but it is not openly downloadable - access requires IBTA registration, so it has not been read here. The section reference and the per-virtual-lane credit behaviour are corroborated by the IEEE tutorial above, which cites it directly. Confirm against the specification itself before treating any wording as normative.',
   },
   {
     id: 'nv-quantum-x800',
@@ -360,7 +360,7 @@ export const sources: Source[] = [
   {
     id: 'guo-roce',
     title: 'RDMA over Commodity Ethernet at Scale',
-    publisher: 'Guo et al., Microsoft — ACM SIGCOMM',
+    publisher: 'Guo et al., Microsoft - ACM SIGCOMM',
     kind: 'independent',
     url: 'https://www.microsoft.com/en-us/research/publication/rdma-commodity-ethernet-scale/',
     verified: true,

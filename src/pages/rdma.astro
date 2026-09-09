@@ -10,15 +10,15 @@ import Widget from '../components/Widget.astro';
 ---
 <Base
   title="RDMA & Kernel Bypass"
-  description="Queue pairs, verbs, and a network adapter that writes into remote memory without waking either CPU — plus GPUDirect, which skips host memory entirely."
+  description="Queue pairs, verbs, and a network adapter that writes into remote memory without waking either CPU - plus GPUDirect, which skips host memory entirely."
   heading="RDMA and Kernel Bypass"
   slug="/rdma"
 >
   <div class="prose">
     <p class="lede">
-      At <S id="ndr-rate" /> per port, a CPU that touched every byte would be the bottleneck by an
-      enormous margin. So it does not touch them. The adapter is given the memory and the
-      instructions, and the operating system is removed from the data path entirely.
+      A single <S id="ndr-rate" /> port carries 50 GB/s in each direction, and a compute tray has
+      four of them. No CPU is going to copy that, so it does not: the adapter is given the memory
+      and the instructions, and the operating system is removed from the data path entirely.
     </p>
 
     <h2 id="path">The path a message takes</h2>
@@ -33,7 +33,7 @@ import Widget from '../components/Widget.astro';
       <p>
         RDMA removes the hand-offs. The program tells the network card, once and in advance,
         which region of memory it is allowed to read and write. After that the card on one machine
-        writes directly into memory on another — no copies through the operating system, and
+        writes directly into memory on another - no copies through the operating system, and
         nobody woken up in between. The remote CPU is not merely fast here; it is uninvolved.
       </p>
     </L>
@@ -41,7 +41,7 @@ import Widget from '../components/Widget.astro';
     <L min={2}>
       <p>
         The interface is <T id="verbs">verbs</T>, and the connection abstraction is the
-        <T id="queue-pair">queue pair</T> — a send queue and a receive queue that together form
+        <T id="queue-pair">queue pair</T> - a send queue and a receive queue that together form
         one endpoint.<Cite ids="nv-gpudirect" /> Work is not requested through a system call; it is
         posted as a descriptor onto a queue that the application shares with the adapter, and
         completions are reaped from a separate completion queue. That shared-memory arrangement is
@@ -51,7 +51,7 @@ import Widget from '../components/Widget.astro';
         Three properties fall out of it, and they are usually named together: OS bypass, because
         the kernel is not on the data path; zero copy, because the adapter reads the application's
         own buffer; and offload, because packet processing happens on the adapter rather than on a
-        core. Everything above this layer — NCCL, MPI — is ultimately posting work requests to
+        core. Everything above this layer - NCCL, MPI - is ultimately posting work requests to
         queue pairs.
       </p>
     </L>
@@ -68,7 +68,7 @@ import Widget from '../components/Widget.astro';
         This is worth knowing because it is the most common way a benchmark lies. A microbenchmark
         that registers inside its timing loop measures registration, not transfer, and will report
         a fraction of what the fabric can do. It is also why buffer pooling shows up in every
-        serious RDMA library — the pool exists to amortise registration, not allocation.
+        serious RDMA library - the pool exists to amortise registration, not allocation.
       </p>
     </L>
   </div>
@@ -76,7 +76,7 @@ import Widget from '../components/Widget.astro';
   <Widget
     title="Where the copies go"
     hint="Hover a path · click to keep it"
-    caption="One message from GPU memory on one node to GPU memory on another, by three routes. Copy and context-switch counts are the structural ones implied by each path, not measurements — the point is which steps exist at all. GPUDirect RDMA is supported on ConnectX-3 VPI and newer, over both InfiniBand and RoCE."
+    caption="One message from GPU memory on one node to GPU memory on another, by three routes. Copy and context-switch counts are the structural ones implied by each path, not measurements - the point is which steps exist at all. GPUDirect RDMA is supported on ConnectX-3 VPI and newer, over both InfiniBand and RoCE."
   >
     <div data-paths>
       <svg class="diagram" viewBox="0 0 720 330" role="img"
@@ -96,7 +96,7 @@ import Widget from '../components/Widget.astro';
       <p>
         Verbs get the kernel out of the way, but for GPU traffic that is only half the problem. If
         the adapter can only reach host memory, then a GPU-to-GPU transfer stages through system
-        RAM on both sides — the data crosses PCIe twice more than it needs to, and host memory
+        RAM on both sides - the data crosses PCIe twice more than it needs to, and host memory
         bandwidth becomes the ceiling on a transfer that never wanted to be there.
       </p>
       <p>
@@ -112,7 +112,7 @@ import Widget from '../components/Widget.astro';
       <p>
         One detail here matters more than it first appears: GPUDirect RDMA works over
         <T id="roce">RoCE</T> as well as InfiniBand.<Cite ids="nv-gpudirect" /> The programming
-        model — queue pairs, verbs, registered regions, direct GPU access — is identical on both
+        model - queue pairs, verbs, registered regions, direct GPU access - is identical on both
         fabrics. That is the single most important fact for
         <a href="/infiniband-vs-ethernet">the comparison at the end of this section</a>, because
         it means the choice between InfiniBand and Ethernet is not a choice about how software is
@@ -122,7 +122,7 @@ import Widget from '../components/Widget.astro';
       <p>
         It also explains why this chapter sits before the topology chapters rather than after
         them. Once transfers are zero-copy and CPU-free, essentially all remaining performance
-        lives in the fabric — in whether the packet gets a clear path, and in how far it has to
+        lives in the fabric - in whether the packet gets a clear path, and in how far it has to
         travel to find one.
       </p>
     </L>
@@ -157,7 +157,7 @@ import Widget from '../components/Widget.astro';
       <p>
         The site describes MNNVL and the IMEX service in
         <a href="/scale-out">chapter 7 of Part I</a> and again in
-        <a href="/inference#platform">chapter 8</a>, which is one home too many already — so it is
+        <a href="/inference#platform">chapter 8</a>, which is one home too many already - so it is
         not described a third time here. The distinction to carry away is that load/store
         coherence stops at the rack, and everything in this section is what happens after it does.
       </p>
@@ -199,7 +199,7 @@ import Widget from '../components/Widget.astro';
           { label: 'the wire', kind: 'wire' },
         ],
         copies: 1, switches: 'none on the data path', cpu: 'sender posts, receiver uninvolved', bounce: 'yes',
-        note: 'The kernel is gone: work is posted as a descriptor onto a queue the application shares with the adapter, and the remote CPU takes no part at all. But if the adapter can only reach host memory, GPU data still has to be staged there first — so one copy survives, and host memory bandwidth caps a transfer that had nothing to do with the host.',
+        note: 'The kernel is gone: work is posted as a descriptor onto a queue the application shares with the adapter, and the remote CPU takes no part at all. But if the adapter can only reach host memory, GPU data still has to be staged there first - so one copy survives, and host memory bandwidth caps a transfer that had nothing to do with the host.',
       },
       {
         id: 'gpudirect', name: 'GPUDirect RDMA',
@@ -209,7 +209,7 @@ import Widget from '../components/Widget.astro';
           { label: 'the wire', kind: 'wire' },
         ],
         copies: 0, switches: 'none on the data path', cpu: 'neither', bounce: 'no',
-        note: 'The adapter reads GPU memory directly, so host memory is not on the path at all. nvidia-peermem registers the GPU region with the InfiniBand subsystem, and from there it is an ordinary registered region. This is the path every collective on these racks actually takes — and it works over RoCE as well as InfiniBand.',
+        note: 'The adapter reads GPU memory directly, so host memory is not on the path at all. nvidia-peermem registers the GPU region with the InfiniBand subsystem, and from there it is an ordinary registered region. This is the path every collective on these racks actually takes - and it works over RoCE as well as InfiniBand.',
       },
     ];
 
@@ -270,7 +270,7 @@ import Widget from '../components/Widget.astro';
       const render = (id: string | null) => {
         const p = id ? PATHS.find((x) => x.id === id) : undefined;
         panel.innerHTML = p
-          ? `<h5>${p.name}${id === pinned ? ' <span class="count">pinned — click again to release</span>' : ''}</h5>` +
+          ? `<h5>${p.name}${id === pinned ? ' <span class="count">pinned - click again to release</span>' : ''}</h5>` +
             `<p>${p.note}</p>` +
             `<p style="color:var(--ink-3)">Copies: ${p.copies} · Kernel entries: ${p.switches} · CPU involved: ${p.cpu} · Stages through host memory: ${p.bounce}</p>`
           : IDLE;

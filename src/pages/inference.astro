@@ -11,7 +11,7 @@ import SpecTable from '../components/SpecTable.astro';
 ---
 <Base
   title="Software & Inference"
-  description="Prefill is compute-bound, decode is memory-bound. Splitting them across a 72-GPU NVLink domain is the payoff — worth about 1.5× on MLPerf Inference v5.1."
+  description="Prefill is compute-bound, decode is memory-bound. Splitting them across a 72-GPU NVLink domain is the payoff - worth about 1.5× on MLPerf Inference v5.1."
   heading="Software & Inference"
   slug="/inference"
 >
@@ -30,7 +30,7 @@ import SpecTable from '../components/SpecTable.astro';
       </p>
       <p>
         First it reads your whole prompt at once. That is a large, dense pile of arithmetic and it
-        keeps the chip's maths units busy — this phase is limited by how fast the GPU can compute.
+        keeps the chip's maths units busy - this phase is limited by how fast the GPU can compute.
         Then it writes the answer one word at a time, and each word requires re-reading the model's
         entire set of weights to produce a tiny amount of arithmetic. That phase is limited by how
         fast the GPU can read memory, not by how fast it can compute.
@@ -53,7 +53,7 @@ import SpecTable from '../components/SpecTable.astro';
       <p>
         Co-locating them forces a compromise on every axis: batch composition, memory budget,
         parallelism width, and scheduling. Worse, a prefill burst stalls the decode steps sharing
-        the GPU, which shows up directly as inter-token latency jitter — the thing interactive
+        the GPU, which shows up directly as inter-token latency jitter - the thing interactive
         serving is judged on.
       </p>
     </L>
@@ -62,7 +62,7 @@ import SpecTable from '../components/SpecTable.astro';
   <Widget
     title="Where the GPU-seconds go"
     hint="Change the request shape"
-    caption="An illustrative model, not a performance predictor: it assumes prefill throughput per GPU is a few thousand tokens per second and decode a few tens, then shows how the work ratio — and therefore the ideal GPU split — moves with request shape. The one measured figure on this page is the ~1.5× from MLPerf Inference v5.1."
+    caption="An illustrative model, not a performance predictor: it assumes prefill throughput per GPU is a few thousand tokens per second and decode a few tens, then shows how the work ratio - and therefore the ideal GPU split - moves with request shape. The one measured figure on this page is the ~1.5× from MLPerf Inference v5.1."
   >
     <div data-disagg>
       <svg class="diagram" viewBox="0 0 720 210" role="img" aria-label="Bar showing the split of GPU-seconds between prefill and decode, and the resulting allocation of 72 GPUs.">
@@ -152,7 +152,7 @@ import SpecTable from '../components/SpecTable.astro';
     <ul>
       <li>
         <strong>Topology awareness.</strong> <T id="nccl">NCCL</T> and CUDA know the NVLink
-        topology and pick collective algorithms accordingly — including using
+        topology and pick collective algorithms accordingly - including using
         <T id="sharp">SHARP</T> in-network reduction where it applies. Nothing about the fabric is
         exposed as something you tune by hand.
       </li>
@@ -160,12 +160,12 @@ import SpecTable from '../components/SpecTable.astro';
         <strong>Domain boundaries.</strong> <T id="mnnvl">MNNVL</T> and the IMEX service let GPU
         memory be exported across OS domains; Kubernetes models this with a ComputeDomain resource
         via the GPU Operator and DRA driver.<Cite ids={['nv-mnnvl', 'nv-imex']} /> IMEX itself does
-        not depend on CUDA — it brokers the export/import handshake between compute nodes over TCP
+        not depend on CUDA - it brokers the export/import handshake between compute nodes over TCP
         and gRPC. The NVLink domain and the scheduling domain are separate concepts.
       </li>
       <li>
         <strong>Partitioning.</strong> <T id="mig">MIG</T> still slices a single GPU into isolated
-        instances — relevant for inference tenancy, irrelevant to the training story.
+        instances - relevant for inference tenancy, irrelevant to the training story.
       </li>
     </ul>
 
@@ -192,8 +192,8 @@ import SpecTable from '../components/SpecTable.astro';
         that board replacement becomes a scheduled event. The reason this belongs in a chapter on
         inference rather than one on hardware: the failure domain is the NVLink domain. Losing a
         compute tray removes four GPUs from a 72-GPU fabric, and any job whose collectives span it
-        must be reformed. Designing serving topologies that degrade rather than stop — and knowing
-        which tray a replica lives on — is an operational discipline this density forces on you.
+        must be reformed. Designing serving topologies that degrade rather than stop - and knowing
+        which tray a replica lives on - is an operational discipline this density forces on you.
       </p>
     </Deeper>
   </div>

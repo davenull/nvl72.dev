@@ -57,7 +57,7 @@ import Widget from '../components/Widget.astro';
       <p>
         The other structural change is on the host side. Replacing x86-over-PCIe with
         Grace-over-<T id="nvlink-c2c">NVLink-C2C</T> turns host memory from a staging area into a
-        genuine second tier of the same coherent address space — which is why the rack's
+        genuine second tier of the same coherent address space - which is why the rack's
         <S id="mem-total" /> of unified memory is quoted as a single figure rather than as HBM plus
         something else.
       </p>
@@ -96,7 +96,7 @@ import Widget from '../components/Widget.astro';
         <div><dt>Attainable</dt><dd data-out="att">16 TFLOPS</dd></div>
         <div><dt>Share of peak</dt><dd data-out="pct">0.2%</dd></div>
         <div><dt>Bound by</dt><dd data-out="bound">memory</dd></div>
-        <div><dt>Workload</dt><dd data-out="mark">—</dd></div>
+        <div><dt>Workload</dt><dd data-out="mark">-</dd></div>
       </dl>
       <p data-out="note" style="margin:0.9rem 0 0;font-size:0.875rem;color:var(--ink-2)"></p>
     </div>
@@ -124,8 +124,8 @@ import Widget from '../components/Widget.astro';
       </p>
       <p>
         This is the whole justification for the rack. Buying more FLOPS does nothing for a
-        bandwidth-bound phase. Buying more bandwidth — and, crucially, more <em>places to spread
-        the working set</em> so that each GPU reads less — does. A 72-GPU coherent domain is a
+        bandwidth-bound phase. Buying more bandwidth - and, crucially, more <em>places to spread
+        the working set</em> so that each GPU reads less - does. A 72-GPU coherent domain is a
         bandwidth purchase disguised as a compute purchase.
       </p>
     </L>
@@ -139,8 +139,8 @@ import Widget from '../components/Widget.astro';
         dimension that tier cannot afford to carry.
       </p>
       <p>
-        Run that test on an MoE layer's expert all-to-all — a pure data movement with essentially
-        no arithmetic attached — and it fails at every tier. It only becomes affordable when the
+        Run that test on an MoE layer's expert all-to-all - a pure data movement with essentially
+        no arithmetic attached - and it fails at every tier. It only becomes affordable when the
         bandwidth in the denominator is <S id="nvlink-egress" /> per GPU rather than
         <S id="cx7-egress" /> or <S id="cx8-egress" />, which is the argument
         <a href="/inference">the inference chapter</a> makes in throughput terms.
@@ -156,7 +156,7 @@ import Widget from '../components/Widget.astro';
       <p>
         Every generation of this hardware is an argument about where the boundary between them
         should sit. NVL72's answer is "at the rack". <a href="/roadmap">The roadmap</a> is a series
-        of proposals to move it further out — and a matching series of power figures explaining
+        of proposals to move it further out - and a matching series of power figures explaining
         what that costs.
       </p>
     </Deeper>
@@ -185,7 +185,7 @@ import Widget from '../components/Widget.astro';
         nvlink: { label: 'NVLink 5 egress', bw: 900e9,
           note: 'The same argument one tier out: the operand is now a message crossing the fabric, not a cache line. The ridge drops by roughly an order of magnitude, which is why a coherent 72-GPU domain can carry traffic a network cannot.' },
         ib: { label: 'InfiniBand', bw: 100e9,
-          note: 'Across racks. The ridge drops again, and any exchange with little arithmetic attached — an expert all-to-all, a KV cache transfer — becomes something you schedule around rather than something you simply do.' },
+          note: 'Across racks. The ridge drops again, and any exchange with little arithmetic attached - an expert all-to-all, a KV cache transfer - becomes something you schedule around rather than something you simply do.' },
       };
       let mode = 'hbm';
 
@@ -199,14 +199,14 @@ import Widget from '../components/Widget.astro';
       const fmtAI = (a: number) => a >= 100 ? Math.round(a).toLocaleString() : a.toFixed(1);
 
       const MARKS = [
-        { ai: 1.2, label: 'decode', note: 'One token at a time, re-reading every weight. Memory-bound at any batch size that fits — more FLOPS buys nothing here.' },
-        { ai: 60, label: 'attention prefill', note: 'The whole prompt at once. Better, but still short of the ridge on HBM: attention re-reads the KV cache faster than it accumulates arithmetic.' },
+        { ai: 1.2, label: 'decode', note: 'One token at a time, re-reading every weight. Memory-bound at any batch size that fits - more FLOPS buys nothing here.' },
+        { ai: 60, label: 'attention prefill', note: 'The whole prompt at once - fifty times decode’s arithmetic intensity, and still short of the ridge on HBM: attention re-reads the KV cache faster than it accumulates arithmetic.' },
         { ai: 2500, label: 'large GEMM', note: 'Big dense tiles. The one shape that clears the ridge and actually reaches the flat roof this hardware is sold on.' },
       ];
       const MUTED = 0.1;
 
       // Hover previews a workload, a click keeps it, and touching the slider
-      // by hand releases it — the same contract as the other figures.
+      // by hand releases it - the same contract as the other figures.
       let pinnedMark: number | null = null;
       let hoverMark: number | null = null;
       /** The intensity the reader last chose with the slider themselves. */
@@ -242,7 +242,7 @@ import Widget from '../components/Widget.astro';
         plot.appendChild(el('line', { x1: X0, y1: Y0, x2: X0, y2: Y1, class: 'axis' }));
         plot.appendChild(el('line', { x1: X0, y1: Y1, x2: X1, y2: Y1, class: 'axis' }));
         const xl = el('text', { x: (X0 + X1) / 2, y: Y1 + 40, 'text-anchor': 'middle' });
-        xl.textContent = 'arithmetic intensity — FLOP per byte';
+        xl.textContent = 'arithmetic intensity - FLOP per byte';
         plot.appendChild(xl);
 
         // roof
@@ -269,7 +269,7 @@ import Widget from '../components/Widget.astro';
             fill: active === i ? 'var(--gpu)' : 'var(--ink-3)' });
           t.textContent = m.label + (i === pinnedMark ? ' ·' : '');
           g.appendChild(t);
-          // A generous invisible hit area — the dot alone is a hard target.
+          // A generous invisible hit area - the dot alone is a hard target.
           g.appendChild(el('rect', { x: lx(m.ai) - 34, y: y - 22, width: 68, height: 30,
             fill: 'transparent' }));
           plot.appendChild(g);
@@ -287,7 +287,7 @@ import Widget from '../components/Widget.astro';
         out('pct').textContent = (att / PEAK * 100).toFixed(att / PEAK < 0.01 ? 2 : 1) + '%';
         out('bound').textContent = bound;
         out('mark').textContent = active === null
-          ? '—'
+          ? '-'
           : MARKS[active].label + (active === pinnedMark ? ' · pinned' : '');
         out('note').textContent = active === null ? BW[mode].note : MARKS[active].note;
 

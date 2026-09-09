@@ -27,14 +27,14 @@ import SpecTable from '../components/SpecTable.astro';
     <L at={1}>
       <p>
         Switches have a fixed number of sockets. A Q3400 has 144. If you need to connect more
-        machines than that, you have to connect switches to each other — and now some of those 144
+        machines than that, you have to connect switches to each other - and now some of those 144
         sockets are used up talking to other switches instead of to machines.
       </p>
       <p>
         Arrange them in a tree and a problem appears: everything at the bottom eventually has to
         squeeze through the top. A <em>fat</em> tree fixes that by making the upper branches as
         thick as everything below them, so nothing narrows on the way up. That is more switches
-        and far more cable than a thin tree — and it is the difference between a network that
+        and far more cable than a thin tree - and it is the difference between a network that
         slows down when everyone talks at once and one that does not.
       </p>
     </L>
@@ -51,7 +51,7 @@ import SpecTable from '../components/SpecTable.astro';
       <p>
         The property that matters is uniformity. Every endpoint is the same number of hops from
         every other, and every pair has a path that does not contend with every other pair. For a
-        collective — whose completion time is set by its slowest participant — a uniform fabric
+        collective - whose completion time is set by its slowest participant - a uniform fabric
         is worth more than a fast but lumpy one.
       </p>
     </L>
@@ -60,7 +60,7 @@ import SpecTable from '../components/SpecTable.astro';
       <p>
         Radix is the lever with the most leverage, because tiers multiply cost non-linearly. Each
         additional tier adds two hops to every cross-fabric path, adds a full set of switches, and
-        — since inter-tier links cross rows — turns copper into optics. Doubling radix from 72 to
+        - since inter-tier links cross rows - turns copper into optics. Doubling radix from 72 to
         144 quadruples two-tier capacity, which is why switch vendors chase port count rather than
         per-port rate alone.
       </p>
@@ -68,7 +68,8 @@ import SpecTable from '../components/SpecTable.astro';
         It is also why NVIDIA's fabrics are not only fat trees. The reference architecture notes
         support for "fat-tree, Dragonfly, and multi-dimensional Torus" topologies.<Cite ids="nv-superpod-fabrics" />
         Fat trees dominate for AI because they are uniform and because collectives are the
-        workload; the alternatives trade uniformity for cable count at very large scale.
+        workload; the alternatives trade uniformity for cable count once a fat tree would need a
+        third tier to fit the endpoints.
       </p>
     </L>
   </div>
@@ -76,7 +77,7 @@ import SpecTable from '../components/SpecTable.astro';
   <Widget
     title="Topology builder"
     hint="Set radix, tiers and oversubscription"
-    caption="Standard fat-tree arithmetic, computed live rather than looked up: endpoints = k × (k/2)^(tiers−1) adjusted for the downward share, with switch and cable counts following. It is exact for the idealised topology and ignores the practicalities — spare ports for management, failure domains, and the fact that real builds round to whole racks."
+    caption="Standard fat-tree arithmetic, computed live rather than looked up: endpoints = k × (k/2)^(tiers−1) adjusted for the downward share, with switch and cable counts following. It is exact for the idealised topology and ignores the practicalities - spare ports for management, failure domains, and the fact that real builds round to whole racks."
   >
     <div data-topo>
       <svg class="diagram" viewBox="0 0 720 220" role="img"
@@ -117,14 +118,16 @@ import SpecTable from '../components/SpecTable.astro';
     <L min={2}>
       <p>
         <T id="oversubscription">Oversubscription</T> means fitting less upward capacity than
-        downward — pointing more of each leaf's ports at endpoints and fewer at the tier above. A
-        2:1 upper tier roughly halves the spine switches and the optics between tiers, which on a
-        fabric of this size is a very large number.
+        downward - pointing more of each leaf's ports at endpoints and fewer at the tier above. A
+        2:1 upper tier roughly halves the spine switches and the optics between tiers. Put the
+        builder above at radix 144, two tiers, 1:1 and it reports 72 spine switches and 10,368
+        inter-tier cables; at 2:1 that becomes 48 and 6,912. Those saved cables are the ones
+        crossing rows, so they are the expensive optical ones rather than the copper.
       </p>
       <p>
         It is invisible to traffic that stays local, which is most enterprise traffic and almost
         none of this. An all-reduce is the pattern in which every endpoint transmits across the
-        fabric simultaneously — precisely the case oversubscription bets against. Which is why AI
+        fabric simultaneously - precisely the case oversubscription bets against. Which is why AI
         fabrics are usually built non-blocking where general-purpose data-centre fabrics are not,
         and why the SuperPOD design is explicit about being "a fully non-blocking fat tree
         topology for each SU".<Cite ids="nv-superpod-fabrics" />
@@ -151,14 +154,15 @@ import SpecTable from '../components/SpecTable.astro';
 
     <L at={1}>
       <p>
-        Here is a trick that costs nothing and saves a great deal. Each compute tray has four
+        Here is a trick that costs nothing in hardware and removes two hops from the traffic that
+        matters most. Each compute tray has four
         network connections, one per GPU. Instead of wiring them arbitrarily, wire GPU number one
         in every rack to the same switch, GPU number two in every rack to a second switch, and so
         on.
       </p>
       <p>
-        Now when the GPUs numbered one across the whole cluster want to talk to each other — which
-        is exactly what they do during a collective — they are all already plugged into the same
+        Now when the GPUs numbered one across the whole cluster want to talk to each other - which
+        is exactly what they do during a collective - they are all already plugged into the same
         switch. The traffic never climbs the tree at all.
       </p>
     </L>
@@ -166,13 +170,13 @@ import SpecTable from '../components/SpecTable.astro';
     <L min={2}>
       <p>
         That is <T id="rail-optimised">rail alignment</T>. A compute tray carries
-        <S id="superpod-rails" /> — one per GPU — and racks are rail-aligned so that, in NVIDIA's
+        <S id="superpod-rails" /> - one per GPU - and racks are rail-aligned so that, in NVIDIA's
         words, "traffic per rail of each compute tray is always one hop away from other compute
         trays in the same Scalable Unit".<Cite ids="nv-superpod-fabrics" />
       </p>
       <p>
         The structure follows from it. Each Scalable Unit contains four spine-leaf groups, one per
-        rail, and each group has <S id="slg-leaf" /> — one per compute rack — and
+        rail, and each group has <S id="slg-leaf" /> - one per compute rack - and
         <S id="slg-spine" />.<Cite ids="nv-superpod-fabrics" /> The rail count and the group count
         are the same number for the same reason.
       </p>
@@ -215,7 +219,7 @@ import SpecTable from '../components/SpecTable.astro';
       <p>
         The GB200 product page puts the maximum fabric at <S id="max-gpus" /> GPUs with 128 leaf
         switches. The DGX GB200 SuperPOD reference architecture, describing sixteen Scalable
-        Units, implies a different arrangement — 64 leaf and 384 spine.<Cite ids={['nv-gb200', 'nv-superpod-fabrics']} />
+        Units, implies a different arrangement - 64 leaf and 384 spine.<Cite ids={['nv-gb200', 'nv-superpod-fabrics']} />
       </p>
       <p>
         These are almost certainly two different reference designs rather than a contradiction: a
@@ -289,7 +293,7 @@ import SpecTable from '../components/SpecTable.astro';
           parts.push(`At ${over}:1 the upper tier carries ${Math.round(m.bisection * 100)}% of what the endpoints below it can offer. Local traffic will not notice; a collective will, because a collective is the case where everyone transmits at once.`);
         }
         if (tiers === 3) {
-          parts.push('The third tier adds two hops to every cross-fabric path and a full set of switches — and those links cross rows, so they are optical rather than copper.');
+          parts.push('The third tier adds two hops to every cross-fabric path and a full set of switches - and those links cross rows, so they are optical rather than copper.');
         }
         out('verdict').textContent = parts.join(' ');
 
@@ -347,7 +351,7 @@ import SpecTable from '../components/SpecTable.astro';
         tree.appendChild(epLabel);
 
         const note = el('text', { x: 360, y: leafRow.y + 66, 'text-anchor': 'middle', fill: 'var(--ink-3)' });
-        note.textContent = 'schematic — widths are illustrative, the counts are in the readout';
+        note.textContent = 'schematic - widths are illustrative, the counts are in the readout';
         tree.appendChild(note);
       };
 

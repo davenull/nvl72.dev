@@ -37,7 +37,7 @@ import SpecTable from '../components/SpecTable.astro';
 
           <text x="176" y="122" text-anchor="end">Next generation</text>
           <rect x="184" y="109" width="500" height="18" rx="2" fill="var(--line-strong)" opacity="0.5"/>
-          <text x="184" y="147" fill="var(--amber)">240 kW — announced, not measured (Schneider Electric)</text>
+          <text x="184" y="147" fill="var(--amber)">240 kW - announced, not measured (Schneider Electric)</text>
         </g>
       </svg>
     </Widget>
@@ -45,7 +45,7 @@ import SpecTable from '../components/SpecTable.astro';
     <L at={1}>
       <p>
         A normal computer rack in a data centre uses about as much electricity as a few homes.
-        This one uses about as much as a small apartment block — in the same floor space.
+        This one uses about as much as a small apartment block - in the same floor space.
       </p>
       <p>
         Two things follow. The electricity has to arrive differently: instead of each machine
@@ -57,19 +57,19 @@ import SpecTable from '../components/SpecTable.astro';
 
     <L min={2}>
       <p>
-        On the electrical side, per-server PSUs are gone. <S id="power-shelves" /> power shelves —
-        two banks of four, six 5.5 kW supplies each — convert facility input once and drive a
+        On the electrical side, per-server PSUs are gone. <S id="power-shelves" /> power shelves -
+        two banks of four, six 5.5 kW supplies each - convert facility input once and drive a
         shared <T id="busbar">busbar</T> rated for <S id="busbar-current" />, which runs the height
         of the rack; trays draw from it directly.<Cite ids={['supermicro', 'nv-ocp']} /> Converting
         once at rack scale beats converting fifty-four times at server scale on efficiency, and it
-        reclaims the volume that redundant supplies would have occupied — volume this design needs
+        reclaims the volume that redundant supplies would have occupied - volume this design needs
         for cold plates.
       </p>
       <p>
         On the thermal side there is no air-cooled fallback. Direct-to-chip cold plates cover every
         significant package, fed from a rear manifold through blind-mate
         <T id="uqd">quick disconnects</T>, with a <T id="cdu">CDU</T> isolating the rack loop from
-        facility water. Inlet is deliberately warm — <S id="inlet-temp" /> per NVIDIA's ACS
+        facility water. Inlet is deliberately warm - <S id="inlet-temp" /> per NVIDIA's ACS
         reference design, with QCT specifying 45 °C maximum inlet and 65 °C maximum
         return.<Cite ids="qct" />
       </p>
@@ -79,7 +79,7 @@ import SpecTable from '../components/SpecTable.astro';
       <p>
         Warm-water operation is the entire economic argument for liquid at this density. If the
         inlet can be 45 °C, then for most of the year in most climates the facility side needs only
-        dry coolers and pumps — no compressor, no chiller plant. <T id="pue">PUE</T> approaches the
+        dry coolers and pumps - no compressor, no chiller plant. <T id="pue">PUE</T> approaches the
         pumping overhead rather than the refrigeration overhead. The same 45 °C return water is also
         hot enough to be worth something to a district-heating loop, which is why heat reuse appears
         in operator planning around these deployments rather than as an afterthought.
@@ -105,7 +105,7 @@ import SpecTable from '../components/SpecTable.astro';
   <Widget
     title="Coolant loop"
     hint="Drag flow and inlet temperature"
-    caption="Return temperature from ΔT = Q ÷ (ṁ · c_p), with Q = 120 kW, water at 4.18 kJ/kg·K. The point of the widget is the sanity check: at 30–40 L/min a 120 kW rack would need a ΔT of 40 K or more and would blow straight past the 65 °C return limit — so those published figures cannot be describing a full-load rack loop."
+    caption="Return temperature from ΔT = Q ÷ (ṁ · c_p), with Q = 120 kW, water at 4.18 kJ/kg·K. The point of the widget is the sanity check: at 30–40 L/min a 120 kW rack would need a ΔT of 40 K or more and would blow straight past the 65 °C return limit - so those published figures cannot be describing a full-load rack loop."
   >
     <div data-cool>
       <svg class="diagram" viewBox="0 0 720 240" role="img"
@@ -125,7 +125,7 @@ import SpecTable from '../components/SpecTable.astro';
         <text x="215" y="132" text-anchor="middle">heat exch.</text>
 
         <rect x="330" y="30" width="340" height="180" rx="6" fill="none" stroke="var(--line-strong)"/>
-        <text x="340" y="24">rack loop — 18 compute trays</text>
+        <text x="340" y="24">rack loop - 18 compute trays</text>
         {[0, 1, 2, 3, 4].map((i) => (
           <g>
             <rect x={350} y={48 + i * 32} width="300" height="20" rx="3" fill="var(--panel-2)" stroke="var(--line)"/>
@@ -173,13 +173,13 @@ import SpecTable from '../components/SpecTable.astro';
         quoted for a reference design whose assumed heat load and ΔT are not those of a fully
         loaded 120 kW rack. Anything at or above roughly 100 L/min removes 120 kW inside a 65 °C
         return; 30–40 L/min does not, at any plausible inlet temperature. Always ask what a flow
-        number is per, and at what load — the widget above is the check.
+        number is per, and at what load - the widget above is the check.
       </p>
       <p>
         One caveat on the limits themselves. The 45 °C maximum inlet and 65 °C maximum return are
         attributed to QCT by several sources, but that document is a PDF whose text could not be
         read directly, so those two numbers remain second-hand here. The arithmetic above does not
-        depend on them being exact — it depends only on the fact that a 120 kW load at 35 L/min
+        depend on them being exact - it depends only on the fact that a 120 kW load at 35 L/min
         needs a ~49 K rise, which no coolant loop of this kind is designed for.
       </p>
     </Callout>
@@ -220,7 +220,7 @@ import SpecTable from '../components/SpecTable.astro';
       <p>
         The research this site was built from flagged power smoothing as its thinnest-sourced
         topic and recommended finding a dedicated NVIDIA or OCP power paper before writing it up.
-        That source has since been located — NVIDIA's own tuning guide and the GB300 power blog —
+        That source has since been located - NVIDIA's own tuning guide and the GB300 power blog -
         so the section above now exists. It is a reasonable illustration of how the
         <a href="/sources#gaps">known-gaps list</a> is meant to work: a gap is an open item to be
         closed, not a permanent disclaimer.
@@ -277,9 +277,9 @@ import SpecTable from '../components/SpecTable.astro';
         out('verdict').innerHTML = ok
           ? `A ${dT.toFixed(0)} K rise leaves the return at ${tOut.toFixed(0)} °C, inside the 65 °C limit.` +
             (free
-              ? ' At this inlet temperature the facility side can usually run on dry coolers alone for much of the year — no compressor, and a PUE dominated by pumping rather than refrigeration.'
+              ? ' At this inlet temperature the facility side can usually run on dry coolers alone for much of the year - no compressor, and a PUE dominated by pumping rather than refrigeration.'
               : ' A colder inlet than this needs mechanical cooling to produce, which is the overhead warm-water operation exists to avoid.')
-          : `<strong style="color:var(--danger)">Return exceeds the 65 °C limit.</strong> Removing 120 kW at ${lpm} L/min demands a ${dT.toFixed(0)} K rise — which is why the 30–40 L/min figures in circulation cannot be describing a fully loaded rack loop.`;
+          : `<strong style="color:var(--danger)">Return exceeds the 65 °C limit.</strong> Removing 120 kW at ${lpm} L/min demands a ${dT.toFixed(0)} K rise - which is why the 30–40 L/min figures in circulation cannot be describing a fully loaded rack loop.`;
       };
       flow.addEventListener('input', render);
       inlet.addEventListener('input', render);

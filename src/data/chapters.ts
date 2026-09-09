@@ -8,7 +8,7 @@ export interface Chapter {
   n: number | null;
   slug: string;
   /**
-   * Short enough to sit inline in the header as the current chapter's name —
+   * Short enough to sit inline in the header as the current chapter's name -
    * roughly 22 characters is the ceiling. The page's own `heading` prop
    * carries the long form.
    */
@@ -23,9 +23,9 @@ export interface Chapter {
 
 export interface Part {
   id: PartId;
-  /** "Part I" — used in kickers, the switch's accessible name and headings. */
+  /** "Part I" - used in kickers, the switch's accessible name and headings. */
   ordinal: string;
-  /** "The Rack" — the switch's visible label. Two words. */
+  /** "The Rack" - the switch's visible label. Two words. */
   label: string;
   /** One line, shown above each group on the home index. */
   blurb: string;
@@ -43,7 +43,7 @@ export const parts: Part[] = [
         blurb: 'Why a rack of 72 accelerators is better understood as a single machine than as a cluster.',
         interaction: '3D rack, exploded on scroll' },
       { n: 2, slug: '/anatomy', title: 'Anatomy of the Rack', nav: 'Anatomy',
-        blurb: 'Eighteen compute trays, nine switch trays, a copper spine and 120 kW of power — pulled apart part by part.',
+        blurb: 'Eighteen compute trays, nine switch trays, a copper spine and 120 kW of power - pulled apart part by part.',
         interaction: 'Interactive exploded view with hotspots' },
       { n: 3, slug: '/compute-tray', title: 'Inside a Compute Tray', nav: 'Compute tray',
         blurb: 'One 1U slice: two Grace CPUs, four Blackwell GPUs, and the coherent link that replaced PCIe.',
@@ -67,7 +67,7 @@ export const parts: Part[] = [
         blurb: 'Scale-up against scale-out, and a roofline that explains why bandwidth beats FLOPS here.',
         interaction: 'Roofline plot' },
       { n: 10, slug: '/roadmap', title: 'Roadmap', nav: 'Roadmap',
-        blurb: 'GB300 today, Vera Rubin NVL144 announced for 2H 2026 — and the power curve underneath it all.',
+        blurb: 'GB300 today, Vera Rubin NVL144 announced for 2H 2026 - and the power curve underneath it all.',
         interaction: 'Timeline' },
     ],
   },
@@ -87,7 +87,7 @@ export const parts: Part[] = [
         blurb: 'The physical plant: switch radix, OSFP cages, and the reach budget that decides where a rack may stand.',
         interaction: 'Link budget calculator' },
       { n: 4, slug: '/routing', title: 'Addressing & Routing', nav: 'Routing',
-        blurb: 'One subnet manager assigns every address and computes every forwarding table — then adaptive routing overrules it.',
+        blurb: 'One subnet manager assigns every address and computes every forwarding table - then adaptive routing overrules it.',
         interaction: 'Forwarding table explorer' },
       { n: 5, slug: '/topology', title: 'Fat-Trees & Rails', nav: 'Topology',
         blurb: 'Radix sets how many endpoints fit, oversubscription is what you sell to save money, and rails are what make a collective cheap.',
@@ -105,9 +105,9 @@ export const parts: Part[] = [
 /** Shared reference pages. They belong to no part and sit outside prev/next. */
 export const refs: Chapter[] = [
   { n: null, slug: '/glossary', title: 'Glossary', nav: 'Glossary',
-    blurb: 'Every term the site uses, defined once.', interaction: '—' },
+    blurb: 'Every term the site uses, defined once.', interaction: '-' },
   { n: null, slug: '/sources', title: 'Sources & Method', nav: 'Sources',
-    blurb: 'What is measured, what is announced, and what the sources disagree about.', interaction: '—' },
+    blurb: 'What is measured, what is announced, and what the sources disagree about.', interaction: '-' },
 ];
 
 // Back-fill part membership once, so no consumer has to scan for it.
@@ -143,14 +143,14 @@ export function kickerFor(slug: string): string | undefined {
 /**
  * Prev/next in reading order, over chapters only.
  *
- * The sequence crosses the part boundary — a reader who finishes Part I is
+ * The sequence crosses the part boundary - a reader who finishes Part I is
  * offered Part II, because the part switch is discoverable but is not in the
  * reading flow. The crossing is flagged so both call sites can label it,
  * rather than swapping the whole stepper out from under the reader silently.
  *
  * Reference pages return {} and so drop out of the sequence entirely. Before
  * parts existed this walked the full array, which made /roadmap's "next" the
- * glossary — an artifact of the flat walk rather than a decision.
+ * glossary - an artifact of the flat walk rather than a decision.
  */
 export function siblings(slug: string): {
   prev?: Chapter;
