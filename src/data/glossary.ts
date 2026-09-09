@@ -317,7 +317,7 @@ const list: Entry[] = [
     id: 'pfc',
     term: 'PFC',
     short: 'Priority Flow Control — Ethernet’s pause frame, per traffic class: "stop sending" rather than "here is how much you may send".',
-    long: 'Pause is reactive where credits are proactive, so it acts only once buffers are already filling, and a pause propagating backwards can spread congestion in ways credits do not. It is the mechanism that makes lossless Ethernet possible and the mechanism operators most often find hard to tune.',
+    long: 'Pause is reactive where credits are proactive: it acts only once buffers are already filling, and it travels backwards hop by hop, so congestion spreads to flows that never touched the busy link. Three failure modes are documented from production RoCEv2 deployments — deadlock from cyclic buffer dependencies, transport livelock, and pause-frame storms from a single misbehaving adapter. PFC is what makes lossless Ethernet possible, and what makes it an engineering project.',
     see: ['credit-flow-control', 'roce', 'ecn'],
   },
   {

@@ -88,8 +88,13 @@ import SpecTable from '../components/SpecTable.astro';
         InfiniBand was built this way from the start: a sender is told how much room there is and
         never exceeds it. Ethernet was built to drop, so losslessness has to be added — by having
         a congested switch shout "stop" backwards, and by marking traffic so senders slow down
-        before it comes to that. The result is similar; the number of things that have to be
-        configured correctly is not.
+        before it comes to that.
+      </p>
+      <p>
+        Both end up refusing to drop packets. The difference is that the Ethernet version is
+        bolted on, with settings that have to be right — and when they are not, the shouting
+        spreads. A switch told to stop tells the switches behind it to stop, and traffic that had
+        nothing to do with the original congestion stalls too.
       </p>
     </L>
 
@@ -99,8 +104,25 @@ import SpecTable from '../components/SpecTable.astro';
         overflow is structurally impossible.<Cite ids="ieee-ib-credits" />
         <T id="pfc">PFC</T> is a pause sent once buffers are already filling, with
         <T id="ecn">ECN</T> marking packets end-to-end so senders reduce their rate before it
-        comes to that. Both work. One of them has tuning parameters that a data-centre team has to
-        get right, and a well-known failure mode when they do not.
+        comes to that. Both deliver a lossless fabric. PFC is the one with thresholds to tune and
+        documented ways to fail.
+      </p>
+      <p>
+        Those failures are worth naming rather than gesturing at, because they are the reason
+        lossless Ethernet has a reputation. A PFC pause travels backwards hop by hop, so a single
+        congested link can pause switches carrying flows that never touched it — congestion
+        spreads to victims. Cyclic buffer dependencies between paused ports can deadlock a
+        region of the fabric outright. And a single misbehaving adapter emitting pause frames
+        can quiet its whole neighbourhood. Microsoft's production account of running RoCEv2 at
+        scale reports all three: "the safety challenges brought by PFC-induced deadlock (yes, it
+        happened!), RDMA transport livelock, and the NIC PFC pause frame storm
+        problem".<Cite ids="guo-roce" />
+      </p>
+      <p>
+        None of these is a reason not to use Ethernet — the same paper is a report of solving
+        them, and Spectrum-X exists partly because they are solvable. It is a reason the two
+        options are not equivalent work: credits make the failure structurally impossible, while
+        PFC makes it a thing you configure against.
       </p>
       <p>
         The second difference is who is in charge. InfiniBand has a
@@ -182,7 +204,7 @@ import SpecTable from '../components/SpecTable.astro';
       {
         id: 'flow', concern: 'Flow control',
         ib: 'Credits, per virtual lane', eth: 'PFC pause + ECN marking',
-        note: 'The deepest difference. Credits are permission granted before sending, so buffer overflow cannot occur; PFC is a pause sent once buffers are filling, with ECN reducing sender rates end-to-end so it rarely has to. Both deliver a lossless fabric. One of them has tuning parameters and a well-known failure mode when they are wrong.',
+        note: 'The deepest difference. Credits are permission granted before sending, so buffer overflow cannot occur; PFC is a pause sent once buffers are filling, with ECN reducing sender rates end-to-end so it rarely has to. Both deliver a lossless fabric — but PFC pauses travel backwards hop by hop, so congestion spreads to flows that never touched the busy link, cyclic buffer dependencies can deadlock a region outright, and one misbehaving adapter can pause its whole neighbourhood. Microsoft hit all three running RoCEv2 in production, and fixed them; the point is that credits make those failures impossible rather than configurable.',
       },
       {
         id: 'routing', concern: 'Routing',

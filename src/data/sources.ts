@@ -357,6 +357,17 @@ export const sources: Source[] = [
     note: 'GPU memory reachable by the NIC "without needing to copy data to host memory", over both InfiniBand and RoCE. Queue pairs comprise a send and a receive queue; verbs give OS-bypass, zero-copy and offload. `nvidia-peermem` registers GPU memory with the InfiniBand subsystem.',
   },
 
+  {
+    id: 'guo-roce',
+    title: 'RDMA over Commodity Ethernet at Scale',
+    publisher: 'Guo et al., Microsoft — ACM SIGCOMM',
+    kind: 'independent',
+    url: 'https://www.microsoft.com/en-us/research/publication/rdma-commodity-ethernet-scale/',
+    verified: true,
+    date: 'August 2016',
+    note: 'The production account of what goes wrong when RoCEv2 is deployed at scale. Its abstract states outright: "We have addressed the safety challenges brought by PFC-induced deadlock (yes, it happened!), RDMA transport livelock, and the NIC PFC pause frame storm problem." Cited here so the site names the failure mode rather than alluding to one.',
+  },
+
   // ── Pedagogy ────────────────────────────────────────────────────────
   {
     id: 'ciechanowski',
